@@ -1,0 +1,711 @@
+/* ─────────────────────────────────────────────────────────────
+ * Theme tokens
+ * Three palettes share the same variable namespace so any page
+ * can opt-in by referencing var(--bg-primary), var(--accent), …
+ * ─────────────────────────────────────────────────────────────
+ */
+
+:root,
+.theme-romantic {
+  --bg-primary: #f0fdf4;
+  --bg-secondary: #ecfdf5;
+  --bg-card: rgba(255, 255, 255, 0.4);
+  --text-primary: #1e3a5f;
+  --text-secondary: #334155;
+  --accent: #10b981;
+  --accent-light: #a7f3d0;
+  --border: rgba(16, 185, 129, 0.3);
+
+  /* component scoped tokens */
+  --floater-bg: rgba(255, 255, 255, 0.8);
+  --floater-border: rgba(167, 243, 208, 1);
+  --floater-text: #059669;
+  --floater-hover-bg: #10b981;
+  --floater-hover-text: #ffffff;
+  --toggle-icon: #10b981;
+  --toggle-ring: rgba(16, 185, 129, 0.35);
+
+  /* Page gradient backgrounds */
+  --gradient-page: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 35%, #dbeafe 65%, #eff6ff 100%);
+  --gradient-accent: linear-gradient(110deg, #10b981 0%, #34d399 30%, #3b82f6 60%, #2563eb 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(240, 253, 244, 0.6) 100%);
+
+  /* Ambient orb/particle colors */
+  --orb-primary: rgba(52, 211, 153, 0.32);
+  --orb-secondary: rgba(59, 130, 246, 0.22);
+  --orb-tertiary: rgba(16, 185, 129, 0.2);
+  --mote-color: rgba(16, 185, 129, 0.5);
+  --mote-glow: rgba(16, 185, 129, 0.65);
+
+  /* Progress/indicator colors */
+  --progress-primary: rgb(16, 185, 129);
+  --progress-secondary: rgba(167, 243, 208, 0.8);
+  --progress-gradient: linear-gradient(to right, #10b981, #3b82f6);
+
+  /* Button primary */
+  --btn-primary-bg: linear-gradient(110deg, #10b981 0%, #34d399 30%, #3b82f6 60%, #2563eb 100%);
+  --btn-primary-shadow: rgba(16, 185, 129, 0.55);
+  --btn-primary-text: #ffffff;
+
+  /* Card & surface */
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(16, 185, 129, 0.2);
+  --card-hover-bg: rgba(255, 255, 255, 0.9);
+
+  /* Text variants */
+  --text-heading: #1e3a5f;
+  --text-body: #334155;
+  --text-muted: rgba(30, 58, 95, 0.5);
+  --text-on-accent: #ffffff;
+
+  /* Stage gradients (for TodoPage etc) */
+  --stage-0: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #dbeafe 100%);
+  --stage-1: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #bfdbfe 100%);
+  --stage-2: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 50%, #93c5fd 100%);
+  --stage-3: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 50%, #60a5fa 100%);
+
+  color-scheme: light;
+}
+
+.theme-light {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f0fdf4;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --text-primary: #1e3a5f;
+  --text-secondary: #334155;
+  --accent: #10b981;
+  --accent-light: #d1fae5;
+  --border: rgba(16, 185, 129, 0.2);
+
+  --floater-bg: rgba(255, 255, 255, 0.85);
+  --floater-border: rgba(209, 250, 229, 1);
+  --floater-text: #059669;
+  --floater-hover-bg: #10b981;
+  --floater-hover-text: #ffffff;
+  --toggle-icon: #10b981;
+  --toggle-ring: rgba(16, 185, 129, 0.3);
+
+  --gradient-page: linear-gradient(135deg, #ffffff 0%, #f0fdf4 35%, #ecfdf5 65%, #ffffff 100%);
+  --gradient-accent: linear-gradient(110deg, #10b981 0%, #34d399 30%, #3b82f6 60%, #2563eb 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 253, 244, 0.9) 100%);
+
+  --orb-primary: rgba(16, 185, 129, 0.12);
+  --orb-secondary: rgba(59, 130, 246, 0.08);
+  --orb-tertiary: rgba(52, 211, 153, 0.08);
+  --mote-color: rgba(16, 185, 129, 0.3);
+  --mote-glow: rgba(16, 185, 129, 0.45);
+
+  --progress-primary: rgb(16, 185, 129);
+  --progress-secondary: rgba(167, 243, 208, 0.8);
+  --progress-gradient: linear-gradient(to right, #10b981, #3b82f6);
+
+  --btn-primary-bg: linear-gradient(110deg, #10b981 0%, #34d399 30%, #3b82f6 60%, #2563eb 100%);
+  --btn-primary-shadow: rgba(16, 185, 129, 0.4);
+  --btn-primary-text: #ffffff;
+
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(16, 185, 129, 0.15);
+  --card-hover-bg: rgba(255, 255, 255, 1);
+
+  --text-heading: #1e3a5f;
+  --text-body: #334155;
+  --text-muted: rgba(30, 58, 95, 0.5);
+  --text-on-accent: #ffffff;
+
+  --stage-0: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%);
+  --stage-1: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #ecfdf5 100%);
+  --stage-2: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 50%, #d1fae5 100%);
+  --stage-3: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 30%, #34d399 70%, #10b981 100%);
+
+  color-scheme: light;
+}
+
+.theme-dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.8);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent: #34d399;
+  --accent-light: #064e3b;
+  --border: rgba(52, 211, 153, 0.3);
+
+  --floater-bg: rgba(51, 65, 85, 0.8);
+  --floater-border: rgba(100, 116, 139, 1);
+  --floater-text: #6ee7b7;
+  --floater-hover-bg: #34d399;
+  --floater-hover-text: #0f172a;
+  --toggle-icon: #34d399;
+  --toggle-ring: rgba(52, 211, 153, 0.4);
+
+  --gradient-page: linear-gradient(135deg, #0f172a 0%, #1e293b 35%, #0f2922 65%, #0f172a 100%);
+  --gradient-accent: linear-gradient(110deg, #34d399 0%, #6ee7b7 30%, #60a5fa 60%, #3b82f6 100%);
+  --gradient-card: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.6) 100%);
+
+  --orb-primary: rgba(52, 211, 153, 0.15);
+  --orb-secondary: rgba(59, 130, 246, 0.1);
+  --orb-tertiary: rgba(16, 185, 129, 0.08);
+  --mote-color: rgba(52, 211, 153, 0.4);
+  --mote-glow: rgba(52, 211, 153, 0.5);
+
+  --progress-primary: rgb(52, 211, 153);
+  --progress-secondary: rgba(110, 231, 183, 0.3);
+  --progress-gradient: linear-gradient(to right, #34d399, #60a5fa);
+
+  --btn-primary-bg: linear-gradient(110deg, #34d399 0%, #6ee7b7 30%, #60a5fa 60%, #3b82f6 100%);
+  --btn-primary-shadow: rgba(52, 211, 153, 0.4);
+  --btn-primary-text: #ffffff;
+
+  --card-bg: rgba(30, 41, 59, 0.8);
+  --card-border: rgba(52, 211, 153, 0.2);
+  --card-hover-bg: rgba(30, 41, 59, 0.95);
+
+  --text-heading: #f1f5f9;
+  --text-body: #cbd5e1;
+  --text-muted: rgba(148, 163, 184, 0.7);
+  --text-on-accent: #ffffff;
+
+  --stage-0: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e293b 100%);
+  --stage-1: linear-gradient(135deg, #022c22 0%, #064e3b 50%, #022c22 100%);
+  --stage-2: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #064e3b 100%);
+  --stage-3: linear-gradient(135deg, #065f46 0%, #047857 30%, #059669 70%, #10b981 100%);
+
+  color-scheme: dark;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Body-level theme application
+ * Default uses the green-blue gradient. Light & dark switch
+ * the canvas to flat surface tokens with a soft transition.
+ * ─────────────────────────────────────────────────────────────
+ */
+
+html,
+body {
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
+}
+
+.theme-light html,
+html.theme-light,
+.theme-light body,
+body.theme-light {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html.theme-light body {
+  background:
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(16, 185, 129, 0.06),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 88% 92%,
+      rgba(59, 130, 246, 0.08),
+      transparent 50%
+    ),
+    var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html.theme-dark {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html.theme-dark body {
+  background:
+    radial-gradient(
+      circle at 18% 12%,
+      rgba(52, 211, 153, 0.18),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 82% 88%,
+      rgba(59, 130, 246, 0.08),
+      transparent 55%
+    ),
+    var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* dampen the cream film-grain when out of romantic */
+html.theme-light body::before,
+html.theme-dark body::before {
+  opacity: 0.04;
+  mix-blend-mode: screen;
+}
+
+/* selection color tracks accent in non-romantic themes */
+html.theme-light ::selection {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+html.theme-dark ::selection {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+/* scrollbars adapt to theme */
+html.theme-light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+html.theme-dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+html.theme-dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * ThemeToggle micro-interactions
+ * ─────────────────────────────────────────────────────────────
+ */
+@keyframes theme-spin-pop {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  40% {
+    transform: rotate(180deg) scale(1.18);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.theme-toggle-spin {
+  animation: theme-spin-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Global Tailwind class overrides
+ * Pages that hardcode pink/rose Tailwind utilities are remapped
+ * automatically when light or dark themes are active so the
+ * green-blue palette stays consistent.
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/* ═══ LIGHT THEME: Override hardcoded pink/rose Tailwind classes ═══ */
+
+/* Text colors */
+.theme-light .text-pink-900 {
+  color: #1e3a5f !important;
+}
+.theme-light .text-pink-800 {
+  color: #1e3a5f !important;
+}
+.theme-light .text-pink-700 {
+  color: #334155 !important;
+}
+.theme-light .text-pink-600 {
+  color: #059669 !important;
+}
+.theme-light .text-pink-500 {
+  color: #10b981 !important;
+}
+.theme-light .text-rose-900 {
+  color: #1e3a5f !important;
+}
+.theme-light .text-rose-800 {
+  color: #1e3a5f !important;
+}
+.theme-light .text-rose-700 {
+  color: #334155 !important;
+}
+.theme-light .text-rose-600 {
+  color: #059669 !important;
+}
+.theme-light .text-rose-500 {
+  color: #10b981 !important;
+}
+.theme-light .text-fuchsia-600 {
+  color: #2563eb !important;
+}
+.theme-light .text-fuchsia-500 {
+  color: #3b82f6 !important;
+}
+.theme-light .text-fuchsia-400 {
+  color: #60a5fa !important;
+}
+
+/* Background colors */
+.theme-light .bg-pink-50 {
+  background-color: #ecfdf5 !important;
+}
+.theme-light .bg-pink-100 {
+  background-color: #d1fae5 !important;
+}
+.theme-light .bg-pink-200 {
+  background-color: #a7f3d0 !important;
+}
+.theme-light .bg-rose-50 {
+  background-color: #ecfdf5 !important;
+}
+.theme-light .bg-rose-100 {
+  background-color: #d1fae5 !important;
+}
+.theme-light .bg-fuchsia-50 {
+  background-color: #eff6ff !important;
+}
+.theme-light .bg-fuchsia-100 {
+  background-color: #dbeafe !important;
+}
+
+/* Border colors */
+.theme-light .border-pink-100 {
+  border-color: rgba(167, 243, 208, 0.4) !important;
+}
+.theme-light .border-pink-200 {
+  border-color: rgba(167, 243, 208, 0.6) !important;
+}
+.theme-light .border-pink-300 {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+.theme-light .border-pink-400 {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+}
+.theme-light .border-rose-200 {
+  border-color: rgba(167, 243, 208, 0.6) !important;
+}
+.theme-light .border-rose-300 {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Ring colors */
+.theme-light .ring-pink-300 {
+  --tw-ring-color: rgba(52, 211, 153, 0.5) !important;
+}
+.theme-light .ring-pink-400 {
+  --tw-ring-color: rgba(16, 185, 129, 0.6) !important;
+}
+
+/* ═══ DARK THEME: Override hardcoded pink/rose Tailwind classes ═══ */
+
+/* Text colors */
+.theme-dark .text-pink-900 {
+  color: #f1f5f9 !important;
+}
+.theme-dark .text-pink-800 {
+  color: #e2e8f0 !important;
+}
+.theme-dark .text-pink-700 {
+  color: #cbd5e1 !important;
+}
+.theme-dark .text-pink-600 {
+  color: #34d399 !important;
+}
+.theme-dark .text-pink-500 {
+  color: #34d399 !important;
+}
+.theme-dark .text-rose-900 {
+  color: #f1f5f9 !important;
+}
+.theme-dark .text-rose-800 {
+  color: #e2e8f0 !important;
+}
+.theme-dark .text-rose-700 {
+  color: #cbd5e1 !important;
+}
+.theme-dark .text-rose-600 {
+  color: #34d399 !important;
+}
+.theme-dark .text-rose-500 {
+  color: #34d399 !important;
+}
+.theme-dark .text-fuchsia-600 {
+  color: #60a5fa !important;
+}
+.theme-dark .text-fuchsia-500 {
+  color: #93c5fd !important;
+}
+.theme-dark .text-fuchsia-400 {
+  color: #bfdbfe !important;
+}
+
+/* Background colors */
+.theme-dark .bg-white {
+  background-color: #1e293b !important;
+}
+.theme-dark .bg-pink-50 {
+  background-color: #022c22 !important;
+}
+.theme-dark .bg-pink-100 {
+  background-color: #064e3b !important;
+}
+.theme-dark .bg-pink-200 {
+  background-color: #065f46 !important;
+}
+.theme-dark .bg-rose-50 {
+  background-color: #022c22 !important;
+}
+.theme-dark .bg-rose-100 {
+  background-color: #064e3b !important;
+}
+.theme-dark .bg-fuchsia-50 {
+  background-color: #172554 !important;
+}
+.theme-dark .bg-fuchsia-100 {
+  background-color: #1e3a5f !important;
+}
+.theme-dark .bg-amber-50 {
+  background-color: #1c1917 !important;
+}
+
+/* Border colors */
+.theme-dark .border-pink-100 {
+  border-color: rgba(52, 211, 153, 0.2) !important;
+}
+.theme-dark .border-pink-200 {
+  border-color: rgba(52, 211, 153, 0.3) !important;
+}
+.theme-dark .border-pink-300 {
+  border-color: rgba(52, 211, 153, 0.4) !important;
+}
+.theme-dark .border-pink-400 {
+  border-color: rgba(52, 211, 153, 0.5) !important;
+}
+.theme-dark .border-rose-200 {
+  border-color: rgba(52, 211, 153, 0.3) !important;
+}
+.theme-dark .border-rose-300 {
+  border-color: rgba(52, 211, 153, 0.4) !important;
+}
+.theme-dark .border-white {
+  border-color: #334155 !important;
+}
+
+/* Ring colors */
+.theme-dark .ring-pink-300 {
+  --tw-ring-color: rgba(52, 211, 153, 0.4) !important;
+}
+.theme-dark .ring-pink-400 {
+  --tw-ring-color: rgba(52, 211, 153, 0.5) !important;
+}
+
+/* White/Glass backgrounds with opacity */
+.theme-dark .bg-white\/80 {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+}
+.theme-dark .bg-white\/70 {
+  background-color: rgba(30, 41, 59, 0.7) !important;
+}
+.theme-dark .bg-white\/60 {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+}
+.theme-dark .bg-white\/50 {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+.theme-dark .bg-white\/40 {
+  background-color: rgba(30, 41, 59, 0.4) !important;
+}
+.theme-dark .bg-white\/30 {
+  background-color: rgba(30, 41, 59, 0.3) !important;
+}
+.theme-dark .bg-white\/20 {
+  background-color: rgba(30, 41, 59, 0.2) !important;
+}
+.theme-dark .bg-white\/10 {
+  background-color: rgba(30, 41, 59, 0.1) !important;
+}
+
+/* Light theme glass */
+.theme-light .bg-white\/80 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+.theme-light .bg-white\/70 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+.theme-light .bg-white\/60 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Dark theme text-white handling (only override when inside colored containers) */
+.theme-dark .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+.theme-dark .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+.theme-dark .text-gray-600 {
+  color: #94a3b8 !important;
+}
+.theme-dark .text-gray-500 {
+  color: #64748b !important;
+}
+
+/* Shadow adjustments */
+.theme-dark .shadow-pink-300\/40 {
+  --tw-shadow-color: rgba(52, 211, 153, 0.3) !important;
+}
+.theme-dark .shadow-pink-400\/50 {
+  --tw-shadow-color: rgba(16, 185, 129, 0.3) !important;
+}
+.theme-light .shadow-pink-300\/40 {
+  --tw-shadow-color: rgba(16, 185, 129, 0.25) !important;
+}
+.theme-light .shadow-pink-400\/50 {
+  --tw-shadow-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Gradient text stays visible */
+.theme-dark .from-pink-500 {
+  --tw-gradient-from: #34d399 !important;
+}
+.theme-dark .via-rose-400 {
+  --tw-gradient-via: #6ee7b7 !important;
+}
+.theme-dark .to-pink-500 {
+  --tw-gradient-to: #60a5fa !important;
+}
+.theme-light .from-pink-500 {
+  --tw-gradient-from: #10b981 !important;
+}
+.theme-light .via-rose-400 {
+  --tw-gradient-via: #34d399 !important;
+}
+.theme-light .to-pink-500 {
+  --tw-gradient-to: #3b82f6 !important;
+}
+
+/* ═══ DEFAULT (romantic) THEME: Override pink/rose classes to green ═══ */
+.theme-romantic .text-pink-900 {
+  color: #1e3a5f !important;
+}
+.theme-romantic .text-pink-800 {
+  color: #1e3a5f !important;
+}
+.theme-romantic .text-pink-700 {
+  color: #334155 !important;
+}
+.theme-romantic .text-pink-600 {
+  color: #059669 !important;
+}
+.theme-romantic .text-pink-500 {
+  color: #10b981 !important;
+}
+.theme-romantic .text-rose-900 {
+  color: #1e3a5f !important;
+}
+.theme-romantic .text-rose-800 {
+  color: #1e3a5f !important;
+}
+.theme-romantic .text-rose-700 {
+  color: #334155 !important;
+}
+.theme-romantic .text-rose-600 {
+  color: #059669 !important;
+}
+.theme-romantic .text-rose-500 {
+  color: #10b981 !important;
+}
+.theme-romantic .text-fuchsia-600 {
+  color: #2563eb !important;
+}
+.theme-romantic .text-fuchsia-500 {
+  color: #3b82f6 !important;
+}
+.theme-romantic .text-fuchsia-400 {
+  color: #60a5fa !important;
+}
+.theme-romantic .bg-pink-50 {
+  background-color: #ecfdf5 !important;
+}
+.theme-romantic .bg-pink-100 {
+  background-color: #d1fae5 !important;
+}
+.theme-romantic .bg-pink-200 {
+  background-color: #a7f3d0 !important;
+}
+.theme-romantic .bg-rose-50 {
+  background-color: #ecfdf5 !important;
+}
+.theme-romantic .bg-rose-100 {
+  background-color: #d1fae5 !important;
+}
+.theme-romantic .border-pink-100 {
+  border-color: rgba(167, 243, 208, 0.4) !important;
+}
+.theme-romantic .border-pink-200 {
+  border-color: rgba(167, 243, 208, 0.6) !important;
+}
+.theme-romantic .border-pink-300 {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+.theme-romantic .border-pink-400 {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+}
+.theme-romantic .border-rose-200 {
+  border-color: rgba(167, 243, 208, 0.6) !important;
+}
+.theme-romantic .border-rose-300 {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+.theme-romantic .ring-pink-300 {
+  --tw-ring-color: rgba(52, 211, 153, 0.5) !important;
+}
+.theme-romantic .ring-pink-400 {
+  --tw-ring-color: rgba(16, 185, 129, 0.6) !important;
+}
+.theme-romantic .shadow-pink-300\/40 {
+  --tw-shadow-color: rgba(16, 185, 129, 0.25) !important;
+}
+.theme-romantic .shadow-pink-400\/50 {
+  --tw-shadow-color: rgba(16, 185, 129, 0.35) !important;
+}
+.theme-romantic .from-pink-500 {
+  --tw-gradient-from: #10b981 !important;
+}
+.theme-romantic .via-rose-400 {
+  --tw-gradient-via: #34d399 !important;
+}
+.theme-romantic .to-pink-500 {
+  --tw-gradient-to: #3b82f6 !important;
+}
+
+/* ─── Wedding Dark / Night Mode ─────────────────────────────── */
+.wedding-dark {
+  --gradient-page: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  --gradient-card: linear-gradient(135deg, rgba(30, 27, 75, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-accent: #f472b6;
+  --color-accent-light: rgba(244, 114, 182, 0.15);
+  --color-border: rgba(244, 114, 182, 0.2);
+  --color-border-hover: rgba(244, 114, 182, 0.4);
+  --color-glass-bg: rgba(15, 23, 42, 0.6);
+  --color-glass-border: rgba(244, 114, 182, 0.15);
+  --color-gold: #fbbf24;
+  --color-gold-light: rgba(251, 191, 36, 0.15);
+}
+
+.wedding-dark .text-slate-700 { color: var(--color-text-primary); }
+.wedding-dark .text-slate-500 { color: var(--color-text-secondary); }
+.wedding-dark .text-slate-400 { color: var(--color-text-muted); }
+.wedding-dark .text-pink-500 { color: var(--color-accent); }
+.wedding-dark .text-pink-400 { color: var(--color-accent); }
+.wedding-dark .text-pink-300 { color: rgba(244, 114, 182, 0.6); }
+.wedding-dark .border-pink-100\/80 { border-color: var(--color-glass-border); }
+.wedding-dark .border-pink-200\/60 { border-color: var(--color-border); }
+.wedding-dark .border-pink-200\/80 { border-color: var(--color-border); }
+.wedding-dark .bg-white\/70 { background-color: var(--color-glass-bg); }
+.wedding-dark .bg-white\/60 { background-color: var(--color-glass-bg); }
+
+/* ─────────────────────────────────────────────────────────────
+ * Wedding / elegant typography utilities
+ * ─────────────────────────────────────────────────────────────
+ */
+.font-script {
+  font-family: 'Great Vibes', cursive;
+}
+.font-serif-elegant {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
