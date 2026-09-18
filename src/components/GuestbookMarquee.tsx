@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PenLine, Sparkles } from 'lucide-react'
-import { loadGuestbook, loadGuestbookAsync, isLiveMode } from '../lib/guestbook'
+import { loadGuestbook } from '../lib/guestbook'
 import type { GuestbookEntry } from '../lib/guestbook'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -55,17 +55,7 @@ export default function GuestbookMarquee() {
   const [entries, setEntries] = useState<GuestbookEntry[]>(() => loadGuestbook())
 
   useEffect(() => {
-    // Fetch live entries from Supabase when configured
-    if (isLiveMode()) {
-      loadGuestbookAsync().then(setEntries).catch(() => { /* keep local */ })
-    }
-    const handler = () => {
-      if (isLiveMode()) {
-        loadGuestbookAsync().then(setEntries).catch(() => setEntries(loadGuestbook()))
-      } else {
-        setEntries(loadGuestbook())
-      }
-    }
+    const handler = () => setEntries(loadGuestbook())
     window.addEventListener('leo-guestbook-updated', handler)
     return () => window.removeEventListener('leo-guestbook-updated', handler)
   }, [])

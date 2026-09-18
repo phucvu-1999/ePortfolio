@@ -63,7 +63,7 @@ const WHOAMI_TEXT = [
 const SKILLS_TEXT = [
   'languages    TypeScript · JavaScript · HTML · CSS · SQL',
   'frontend     React · Next.js · Framer Motion · GSAP · Tailwind',
-  'backend      Node.js · Supabase · PostgreSQL · REST',
+  'backend      Node.js · PostgreSQL · REST · GraphQL',
   'tooling      Vite · Git · Figma · Vitest',
   'practices    motion design · a11y · performance · DX',
 ].join('\n')

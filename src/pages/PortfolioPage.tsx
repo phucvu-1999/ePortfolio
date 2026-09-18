@@ -22,8 +22,6 @@ import MarqueeBand from './portfolio/MarqueeBand'
 import type { SkillCategory, SkillNode } from './portfolio/content'
 import { usePortfolioSEO } from './portfolio/seo'
 import { downloadResume } from './portfolio/resume'
-import { isSupabaseConfigured, submitContactMessage } from '../services/contact'
-import { incrementVisits, fetchVisitCount, isSupabaseConfigured as isLiveConfigured } from '../services/portfolioLive'
 import { useI18n } from './portfolio/i18n'
 
 // Heavy interactive sections are code-split — loaded only when the page mounts them
@@ -307,23 +305,6 @@ function LiveClock() {
   return (
     <span className="font-mono text-xs text-slate-500">
       {now.toLocaleTimeString('en-US', { hour12: false })} <span className="text-emerald-500/70">·</span> {tz}
-    </span>
-  )
-}
-
-/** Visitor counter — shown only when Supabase is configured. */
-function VisitorCounter() {
-  const [count, setCount] = useState<number | null>(null)
-  useEffect(() => {
-    if (!isLiveConfigured()) return
-    incrementVisits()
-      .then(c => { if (c !== null) setCount(c); else return fetchVisitCount().then(setCount) })
-      .catch(() => { /* hidden on error */ })
-  }, [])
-  if (!isLiveConfigured() || count === null) return null
-  return (
-    <span className="font-mono text-xs text-slate-600">
-      visitors: <span className="text-emerald-500/80">{count.toLocaleString()}</span>
     </span>
   )
 }
@@ -1618,7 +1599,6 @@ export default function PortfolioPage() {
             <div className="flex flex-col items-center md:items-start gap-1">
               <p className="text-slate-500 text-sm font-mono">© 2024 leo.dev — All rights reserved.</p>
               <LiveClock />
-              <VisitorCounter />
             </div>
             <p className="text-slate-500 text-sm flex items-center gap-1 font-mono">
               Built with <span className="text-emerald-400">React</span> + <span className="text-blue-400">TypeScript</span> + <span className="text-violet-400">Framer Motion</span>
@@ -1707,71 +1687,33 @@ function TerminalContactForm() {
     if (started.current && step < 3) inputRef.current?.focus()
   }, [step])
 
-  const runSending = useCallback(async (visitorName: string, visitorEmail: string, visitorMessage: string) => {
+  const runSending = useCallback(async (visitorName: string, _visitorEmail: string, _visitorMessage: string) => {
     setSending(true)
     setProgress(0)
     appendLines([{ text: '> Processing request...', type: 'system' }])
 
-    const configured = isSupabaseConfigured()
-
-    if (configured) {
-      // Real Supabase submit
-      let pct = 0
-      const progressInterval = setInterval(() => {
-        pct += 10
-        setProgress(Math.min(pct, 90))
-      }, 60)
-
-      try {
-        await submitContactMessage(visitorName, visitorEmail, visitorMessage)
-        clearInterval(progressInterval)
-        setProgress(100)
+    // Simulated send — no backend, purely client-side demo
+    let pct = 0
+    const interval = setInterval(() => {
+      pct += 5
+      setProgress(Math.min(pct, 100))
+      if (pct >= 100) {
+        clearInterval(interval)
         setSending(false)
         appendLines([
           { text: '> ████████████████████ 100%', type: 'success' },
           { text: '>', type: 'system' },
           { text: '> ✨ Message transmitted successfully!', type: 'success' },
           { text: `> Thank you, ${visitorName}. I'll respond within 24h.`, type: 'success' },
+          { text: '> (demo mode — message not delivered)', type: 'system' },
           { text: '>', type: 'system' },
           { text: 'visitor@leo:~$ exit', type: 'input' },
           { text: '> Connection closed.', type: 'system' },
         ])
         window.dispatchEvent(new CustomEvent('leo-achievement', { detail: 'sign-here' }))
         setStep(4)
-      } catch (err) {
-        clearInterval(progressInterval)
-        console.error('[ContactForm] Submit failed:', err)
-        setSending(false)
-        setProgress(0)
-        appendLines([
-          { text: `> ✗ Could not deliver message — network error. Please email ${CONTACT_EMAIL} directly.`, type: 'error' },
-        ])
-        setStep(2)
       }
-    } else {
-      // Demo mode — simulated send
-      let pct = 0
-      const interval = setInterval(() => {
-        pct += 5
-        setProgress(Math.min(pct, 100))
-        if (pct >= 100) {
-          clearInterval(interval)
-          setSending(false)
-          appendLines([
-            { text: '> ████████████████████ 100%', type: 'success' },
-            { text: '>', type: 'system' },
-            { text: '> ✨ Message transmitted successfully!', type: 'success' },
-            { text: `> Thank you, ${visitorName}. I'll respond within 24h.`, type: 'success' },
-            { text: '> (demo mode — message not delivered)', type: 'system' },
-            { text: '>', type: 'system' },
-            { text: 'visitor@leo:~$ exit', type: 'input' },
-            { text: '> Connection closed.', type: 'system' },
-          ])
-          window.dispatchEvent(new CustomEvent('leo-achievement', { detail: 'sign-here' }))
-          setStep(4)
-        }
-      }, 75)
-    }
+    }, 75)
   }, [appendLines])
 
   const handleEnter = useCallback(() => {

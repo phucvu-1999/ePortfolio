@@ -1,10 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Guestbook storage — Supabase-backed with localStorage fallback.
-// When Supabase is configured, reads/writes go to the guestbook_entries table.
-// Otherwise, falls back to localStorage with seed data.
+// Guestbook storage — localStorage-backed with seed data.
+// The `sign <name> <message>` command in leo-cli writes here.
 // ═══════════════════════════════════════════════════════════════════════════
-
-import { isSupabaseConfigured, fetchGuestbookEntries, insertGuestbookEntry } from '../services/portfolioLive'
 
 export interface GuestbookEntry {
   name: string
@@ -22,13 +19,6 @@ const SEED: GuestbookEntry[] = [
   { name: 'margaret', message: 'the konami code made my day', ts: 1711929600000 },
 ]
 
-/** Whether we're using Supabase (live mode) or localStorage (fallback). */
-export function isLiveMode(): boolean {
-  return isSupabaseConfigured()
-}
-
-// ─── LocalStorage helpers (fallback) ────────────────────────────────────────
-
 function loadLocal(): GuestbookEntry[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || '[]') as GuestbookEntry[]
@@ -43,41 +33,13 @@ function saveLocal(entries: GuestbookEntry[]) {
   try { localStorage.setItem(KEY, JSON.stringify(entries)) } catch { /* ignore */ }
 }
 
-// ─── Public API ─────────────────────────────────────────────────────────────
-
-/** Synchronous load — returns localStorage/seed data immediately. */
+/** Load guestbook entries (localStorage, seeded on first visit). */
 export function loadGuestbook(): GuestbookEntry[] {
   return loadLocal()
 }
 
-/** Async load — fetches from Supabase when configured, else localStorage. */
-export async function loadGuestbookAsync(): Promise<GuestbookEntry[]> {
-  if (!isSupabaseConfigured()) return loadLocal()
-  try {
-    const rows = await fetchGuestbookEntries()
-    return rows.map(r => ({ name: r.name, message: r.message, ts: new Date(r.created_at).getTime() }))
-  } catch {
-    return loadLocal()
-  }
-}
-
-/** Synchronous add (localStorage only) — kept for terminal `sign` command compat. */
+/** Add an entry, persist to localStorage, and notify listeners. */
 export function addGuestbookEntry(name: string, message: string): GuestbookEntry[] {
-  const next = [...loadLocal(), { name, message, ts: Date.now() }].slice(-MAX_ENTRIES)
-  saveLocal(next)
-  window.dispatchEvent(new CustomEvent('leo-guestbook-updated'))
-  // Fire-and-forget Supabase insert when configured
-  if (isSupabaseConfigured()) {
-    insertGuestbookEntry(name, message).catch(() => { /* silent */ })
-  }
-  return next
-}
-
-/** Async add — writes to Supabase first (when configured), then localStorage. */
-export async function addGuestbookEntryAsync(name: string, message: string): Promise<GuestbookEntry[]> {
-  if (isSupabaseConfigured()) {
-    await insertGuestbookEntry(name, message)
-  }
   const next = [...loadLocal(), { name, message, ts: Date.now() }].slice(-MAX_ENTRIES)
   saveLocal(next)
   window.dispatchEvent(new CustomEvent('leo-guestbook-updated'))
