@@ -21,7 +21,7 @@ interface SkillProduct {
 const PRODUCTS: SkillProduct[] = [
   { id: 'react', name: 'React + TypeScript', tagline: 'Pixel-perfect, type-safe UIs', price: 120, rating: 5.0, icon: Atom },
   { id: 'dotnet', name: '.NET 8 + C#', tagline: 'gRPC microservices at scale', price: 110, rating: 5.0, icon: Boxes },
-  { id: 'payments', name: 'Payment Integrations', tagline: '20+ methods · 0 incidents', price: 140, rating: 5.0, icon: CreditCard },
+  { id: 'payments', name: 'Payment Integrations', tagline: '20+ methods · idempotent recovery', price: 140, rating: 5.0, icon: CreditCard },
   { id: 'xplat', name: 'WPF / Xamarin', tagline: '5 device types, one core', price: 90, rating: 4.5, icon: MonitorSmartphone },
   { id: 'loyalty', name: 'Loyalty & Promos', tagline: 'Points, tiers, 14 reward types', price: 100, rating: 4.5, icon: Gift },
   { id: 'offline', name: 'Offline-First Sync', tagline: 'SQLite → gRPC reconciliation', price: 95, rating: 4.5, icon: CloudOff },

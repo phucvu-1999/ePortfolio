@@ -4,7 +4,8 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, ChevronLeft, Terminal, Tag, AlertTriangle } from 'lucide-react'
 import { PROJECTS, CONTENT_FLAGS } from './content'
 import { usePortfolioSEO } from './seo'
-import { styleBaseOf } from '../../components/StyleSwitcher'
+import { styleBaseOf } from '../../components/portfolioStyles'
+import CaseStudyEvidence from './CaseStudyEvidence'
 
 // ─── Animation variants ─────────────────────────────────────────────────────
 const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } }
@@ -157,6 +158,11 @@ bash: cd: no such file or directory`}
         {/* ─── Approach ─────────────────────────────────────────────────────── */}
         <Section title="The Approach" color={project.color} delay={0.2}>
           <p className="text-slate-300 leading-relaxed text-lg">{cs.approach}</p>
+        </Section>
+
+        {/* ─── Ownership, constraints, decisions, and proof ─────────────────── */}
+        <Section title="My Role & Evidence" color={project.color} delay={0.25}>
+          <CaseStudyEvidence caseStudy={cs} color={project.color} />
         </Section>
 
         {/* ─── Architecture ─────────────────────────────────────────────────── */}

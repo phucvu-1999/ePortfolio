@@ -19,4 +19,12 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // The entry file owns createRoot, so it can never participate in fast
+    // refresh; the only-export-components rule is not applicable there.
+    files: ['src/main.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

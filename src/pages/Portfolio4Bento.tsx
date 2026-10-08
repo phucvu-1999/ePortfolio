@@ -5,6 +5,9 @@ import {
   Monitor, Server, Cloud, Palette, MapPin, Mail, ExternalLink, Clock,
   Briefcase, Star, Quote, ChevronRight, ChevronDown, Terminal,
   GitBranch, Code, Activity, Box, CreditCard, ArrowUp,
+  Tablet, Flame, Smartphone, Package, ScanLine, Zap,
+  Tag, Calculator, Receipt, PackageMinus, ChefHat, Radio,
+  ArrowRight, Wifi, WifiOff, CheckCircle, Database, Gift,
 } from 'lucide-react'
 import {
   CAREER_CHAPTERS, PROJECTS, TESTIMONIALS_DATA, SKILLS_GRAPH,
@@ -34,7 +37,7 @@ const TwitterSvg = ({ size = 20, className }: { size?: number; className?: strin
 
 /* ─── Shared Constants ────────────────────────────────────────────────────── */
 
-const CARD_BASE = 'rounded-[20px] border border-[#1a1a2e] overflow-hidden relative group/card'
+const CARD_BASE = 'rounded-[20px] border border-[#1a1a2e] overflow-hidden relative group/card bento-card'
 const CARD_BG = 'bg-[#111113]'
 const GLASS = 'bg-[rgba(17,17,19,0.8)] backdrop-blur-xl'
 
@@ -43,7 +46,8 @@ const cardMotion = (i: number) => ({
   whileInView: { opacity: 1, y: 0 } as const,
   viewport: { once: true, margin: '-40px' } as const,
   transition: { duration: 0.45, delay: i * 0.05, ease: [0.25, 0.46, 0.45, 0.94] as const },
-  whileHover: { y: -4 } as const,
+  whileHover: { y: -5, scale: 1.012, transition: { type: 'spring', stiffness: 420, damping: 26, delay: 0 } } as const,
+  whileTap: { scale: 0.99, transition: { duration: 0.12, delay: 0 } } as const,
 })
 
 const glowShadow = (color: string) =>
@@ -79,14 +83,39 @@ function useCountUp(end: number, duration = 1200) {
   return { ref, value }
 }
 
-/* ─── useCursorGlow — spotlight following mouse ───────────────────────────── */
+/* ─── useCursorGlow — spotlight following mouse (GPU transform, no re-render) ─ */
 
 function useCursorGlow() {
-  const [pos, setPos] = useState({ x: -999, y: -999 })
-  const onMove = useCallback((e: React.MouseEvent) => {
-    setPos({ x: e.clientX, y: e.clientY })
+  const ref = useRef<HTMLDivElement>(null)
+  const lastCard = useRef<HTMLElement | null>(null)
+
+  const clearCard = useCallback(() => {
+    const el = lastCard.current
+    if (!el) return
+    el.style.removeProperty('--mx')
+    el.style.removeProperty('--my')
+    lastCard.current = null
   }, [])
-  return { onMove, pos }
+
+  const onMove = useCallback((e: React.MouseEvent) => {
+    const glow = ref.current
+    if (glow) {
+      glow.style.transform = `translate3d(${e.clientX - 300}px, ${e.clientY - 300}px, 0)`
+    }
+    // feed the per-card spotlight inside whichever card is hovered
+    const target = (e.target as HTMLElement).closest('.bento-card') as HTMLElement | null
+    if (lastCard.current && lastCard.current !== target) clearCard()
+    if (target) {
+      const rect = target.getBoundingClientRect()
+      target.style.setProperty('--mx', `${e.clientX - rect.left}px`)
+      target.style.setProperty('--my', `${e.clientY - rect.top}px`)
+      lastCard.current = target
+    }
+  }, [clearCard])
+
+  const onLeave = useCallback(() => clearCard(), [clearCard])
+
+  return { onMove, onLeave, ref }
 }
 
 /* ─── Contribution heatmap data (deterministic pseudo-random) ─────────────── */
@@ -116,18 +145,27 @@ const ACTIVITY_DATA = [3, 7, 5, 12, 8, 15, 10, 18, 6, 14, 9, 11]
 
 function AnimatedBorder() {
   return (
-    <div
-      className="absolute inset-0 rounded-[20px] opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none z-0"
-      style={{
-        background: 'conic-gradient(from var(--border-angle, 0deg), transparent 40%, #10b981 50%, #3b82f6 60%, #8b5cf6 70%, transparent 80%)',
-        padding: '1px',
-        mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-        maskComposite: 'exclude',
-        WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-        WebkitMaskComposite: 'xor',
-        animation: 'border-spin 3s linear infinite',
-      }}
-    />
+    <>
+      <div
+        className="absolute inset-0 rounded-[20px] opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none z-0"
+        style={{
+          background: 'conic-gradient(from var(--border-angle, 0deg), transparent 40%, #10b981 50%, #3b82f6 60%, #8b5cf6 70%, transparent 80%)',
+          padding: '1px',
+          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          maskComposite: 'exclude',
+          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          animation: 'border-spin 3s linear infinite',
+        }}
+      />
+      {/* cursor-tracking sheen fed by --mx / --my set on the card root */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 pointer-events-none z-0"
+        style={{
+          background: 'radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%), rgba(228,228,231,0.07), rgba(16,185,129,0.07) 45%, transparent 72%)',
+        }}
+      />
+    </>
   )
 }
 
@@ -167,7 +205,8 @@ function HeroCard() {
             whileInView={{ opacity: 1, scale: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3 + idx * 0.1, duration: 0.4 }}
-            className="text-[10px] px-2.5 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 backdrop-blur-sm"
+            whileHover={{ scale: 1.1, y: -2, transition: { duration: 0.15 } }}
+            className="text-[10px] px-2.5 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 backdrop-blur-sm cursor-default"
           >
             {pill}
           </motion.span>
@@ -181,7 +220,7 @@ function HeroCard() {
           </span>
           <span className="text-emerald-400 text-xs font-medium tracking-wide uppercase">Available for opportunities</span>
         </div>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#e4e4e7] tracking-tight leading-none mb-3">
+        <h1 className="bento-hero-title text-4xl md:text-5xl lg:text-6xl font-bold text-[#e4e4e7] tracking-tight leading-none mb-3">
           {HERO_NAME}
         </h1>
         <p className="text-[#71717a] text-base md:text-lg max-w-md">{HERO_ROLE}</p>
@@ -285,7 +324,7 @@ function HeatmapCard() {
             {week.map((level, di) => (
               <motion.div
                 key={di}
-                className="w-[7px] h-[7px] rounded-[2px]"
+                className="hm-cell w-[7px] h-[7px] rounded-[2px]"
                 style={{ background: HEATMAP_COLORS[level] }}
                 initial={{ opacity: 0, scale: 0 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -362,8 +401,8 @@ function AboutCard() {
       <p className="text-[#a1a1aa] text-sm leading-relaxed">
         Systems engineer with 5+ years building mission-critical POS software for Singapore retail.
         I own the payment layer — 20+ methods including NETS, PayNow, Alipay+, and GrabPay — plus
-        loyalty engines, offline-first sync, and a 30-module .NET 8 ecosystem serving thousands of
-        daily transactions with zero financial incidents.
+        loyalty engines, offline-first sync, and a 30-module .NET 8 ecosystem with explicit
+        idempotency, recovery, and reconciliation paths.
       </p>
     </motion.div>
   )
@@ -627,6 +666,709 @@ function ProjectCard({ project, i }: { project: typeof PROJECTS[number]; i: numb
   )
 }
 
+/* ─── Device Fleet Card (2×1) — multi-device ecosystem ─────────────────── */
+
+const FLEET_DEVICES = [
+  { icon: Monitor, label: 'Terminal', platform: 'Windows' },
+  { icon: Tablet, label: 'Kiosk', platform: 'Android' },
+  { icon: Flame, label: 'KDS', platform: 'Android' },
+  { icon: Smartphone, label: 'Display', platform: 'iOS' },
+  { icon: Package, label: 'Warehouse', platform: 'Android' },
+]
+
+const FLEET_METRICS = ['5 Device Types', '4 Android Apps', '2 iOS Apps', 'Shared Core']
+
+function DeviceFleetCard() {
+  return (
+    <motion.div
+      {...cardMotion(13)}
+      style={{ boxShadow: glowShadow('#10b981') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 col-span-1 md:col-span-2`}
+    >
+      <AnimatedBorder />
+      <h2 className="text-[#e4e4e7] text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2">
+        <Monitor size={14} className="text-emerald-500" /> Device Fleet
+      </h2>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        {FLEET_DEVICES.map((d, idx) => (
+          <motion.div
+            key={d.label}
+            initial={{ opacity: 0, x: -12 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 + idx * 0.08, duration: 0.35 }}
+            className="flex flex-col items-center gap-1.5"
+          >
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <d.icon size={18} className="text-emerald-400" />
+            </div>
+            <span className="text-[10px] text-[#e4e4e7] font-medium">{d.label}</span>
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[#1a1a2e] text-[#71717a]">{d.platform}</span>
+          </motion.div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {FLEET_METRICS.map(m => (
+          <span key={m} className="text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+            {m}
+          </span>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+/* ─── Kiosk Card (1×1) — self-service kiosk highlight ──────────────────── */
+
+const KIOSK_STEPS = ['Browse', 'Order', 'Pay']
+
+function KioskCard() {
+  return (
+    <motion.div
+      {...cardMotion(14)}
+      style={{ boxShadow: glowShadow('#06b6d4') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 flex flex-col justify-between min-h-[140px]`}
+    >
+      <AnimatedBorder />
+      <Tablet size={18} className="text-cyan-500" />
+      <div>
+        <p className="text-[#e4e4e7] text-sm font-semibold mb-2">Self-Service Kiosk</p>
+        <div className="flex items-center gap-1 mb-3">
+          {KIOSK_STEPS.map((s, idx) => (
+            <div key={s} className="flex items-center gap-1">
+              <span className="h-4 w-4 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-[7px] text-cyan-400 font-bold">
+                {idx + 1}
+              </span>
+              <span className="text-[9px] text-[#a1a1aa]">{s}</span>
+              {idx < KIOSK_STEPS.length - 1 && <span className="text-[#71717a] text-[8px] mx-0.5">{"\u2192"}</span>}
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">10&quot; Android Tablet</span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Offline-capable</span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+/* ─── Stock Take Card (1×1) — inventory management ─────────────────────── */
+
+function StockTakeCard() {
+  const { ref: itemsRef, value: itemsCount } = useCountUp(4200, 1400)
+  const { ref: accRef, value: accCount } = useCountUp(992, 1200)
+
+  return (
+    <motion.div
+      {...cardMotion(15)}
+      style={{ boxShadow: glowShadow('#84cc16') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 flex flex-col justify-between min-h-[140px]`}
+    >
+      <AnimatedBorder />
+      <ScanLine size={18} className="text-lime-500" />
+      <div>
+        <p className="text-[#e4e4e7] text-sm font-semibold mb-1">Stock Take</p>
+        <div className="flex items-baseline gap-3 mb-1">
+          <span ref={itemsRef} className="text-2xl font-bold text-lime-400 tabular-nums tracking-tight">
+            {itemsCount.toLocaleString()}
+          </span>
+          <span className="text-[10px] text-[#71717a]">items scanned</span>
+        </div>
+        <div className="flex items-baseline gap-2 mb-2">
+          <span ref={accRef} className="text-lg font-bold text-lime-400 tabular-nums">
+            {(accCount / 10).toFixed(1)}%
+          </span>
+          <span className="text-[10px] text-[#71717a]">accuracy</span>
+        </div>
+        <p className="text-[#71717a] text-[10px]">Barcode scanning &middot; batch sync</p>
+      </div>
+    </motion.div>
+  )
+}
+
+/* ─── Kitchen Display Card (2×1) — KDS streaming visualization ─────────── */
+
+const KDS_TICKETS = [
+  { id: '#041', status: 'new', color: '#3b82f6' },
+  { id: '#042', status: 'cooking', color: '#f59e0b' },
+  { id: '#043', status: 'ready', color: '#10b981' },
+  { id: '#044', status: 'new', color: '#3b82f6' },
+]
+
+const KDS_SOURCES = ['POS', 'Kiosk', 'Foodpanda', 'Hawk']
+
+function KitchenDisplayCard() {
+  return (
+    <motion.div
+      {...cardMotion(16)}
+      style={{ boxShadow: glowShadow('#ef4444') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 col-span-1 md:col-span-2`}
+    >
+      <AnimatedBorder />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-[#e4e4e7] text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+          <Flame size={14} className="text-red-500" /> Kitchen Display
+        </h2>
+        <span className="flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+          </span>
+          gRPC Stream
+        </span>
+      </div>
+      <div className="flex gap-2 mb-4 overflow-x-auto">
+        {KDS_TICKETS.map((ticket, idx) => (
+          <motion.div
+            key={ticket.id}
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.15 + idx * 0.1, duration: 0.35 }}
+            className="flex-shrink-0 w-[72px] p-2.5 rounded-lg bg-[#0a0a0c] border border-[#1a1a2e]"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] text-[#e4e4e7] font-bold">{ticket.id}</span>
+              <span className="h-2 w-2 rounded-full" style={{ background: ticket.color }} />
+            </div>
+            <span className="text-[8px] capitalize" style={{ color: ticket.color }}>{ticket.status}</span>
+          </motion.div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {KDS_SOURCES.map(s => (
+          <span key={s} className="text-[9px] px-2 py-0.5 rounded-full bg-[#1a1a2e] text-[#71717a]">
+            {s}
+          </span>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+/* ─── Ecosystem Card (2×1) — mini architecture diagram ──────────────────── */
+
+const ECO_NODES = [
+  { id: 'core', label: 'Core', cx: 140, cy: 50, color: '#8b5cf6', r: 18 },
+  { id: 'pos', label: 'POS', cx: 40, cy: 50, color: '#3b82f6', r: 12 },
+  { id: 'kiosk', label: 'Kiosk', cx: 80, cy: 14, color: '#06b6d4', r: 12 },
+  { id: 'kds', label: 'KDS', cx: 200, cy: 20, color: '#f97316', r: 12 },
+  { id: 'stock', label: 'Stock', cx: 80, cy: 86, color: '#84cc16', r: 12 },
+  { id: 'ext', label: 'Ext', cx: 220, cy: 72, color: '#ec4899', r: 12 },
+]
+
+const ECO_LINKS = [
+  { from: 'pos', to: 'core' },
+  { from: 'kiosk', to: 'core' },
+  { from: 'core', to: 'kds' },
+  { from: 'stock', to: 'core' },
+  { from: 'ext', to: 'core' },
+]
+
+function EcosystemCard() {
+  return (
+    <motion.div
+      {...cardMotion(17)}
+      style={{ boxShadow: glowShadow('#a855f7') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 col-span-1 md:col-span-2`}
+    >
+      <AnimatedBorder />
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[#e4e4e7] text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+          <Zap size={14} className="text-violet-500" /> Ecosystem
+        </h2>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">
+          10 services
+        </span>
+      </div>
+
+      {/* Mini architecture SVG */}
+      <svg viewBox="0 0 260 100" className="w-full" style={{ height: 120 }}>
+        <defs>
+          <linearGradient id="eco-line-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.6} />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.3} />
+          </linearGradient>
+        </defs>
+
+        {/* Connection lines with animated dash flow */}
+        {ECO_LINKS.map((link, i) => {
+          const from = ECO_NODES.find(n => n.id === link.from)!
+          const to = ECO_NODES.find(n => n.id === link.to)!
+          return (
+            <line
+              key={i}
+              x1={from.cx} y1={from.cy} x2={to.cx} y2={to.cy}
+              stroke="url(#eco-line-grad)" strokeWidth={1.5}
+              strokeDasharray="4 6" opacity={0.7}
+            >
+              <animate
+                attributeName="stroke-dashoffset"
+                from="0" to="-10"
+                dur="1.5s" repeatCount="indefinite"
+              />
+            </line>
+          )
+        })}
+
+        {/* Animated dots flowing along connection lines */}
+        {ECO_LINKS.map((link, i) => {
+          const from = ECO_NODES.find(n => n.id === link.from)!
+          const to = ECO_NODES.find(n => n.id === link.to)!
+          return (
+            <circle key={`dot-${i}`} r={2} fill="#a855f7" opacity={0.8}>
+              <animateMotion
+                dur={`${2 + i * 0.4}s`}
+                repeatCount="indefinite"
+                path={`M${from.cx},${from.cy} L${to.cx},${to.cy}`}
+              />
+            </circle>
+          )
+        })}
+
+        {/* Nodes */}
+        {ECO_NODES.map(node => (
+          <g key={node.id}>
+            <circle
+              cx={node.cx} cy={node.cy} r={node.r}
+              fill={`${node.color}20`} stroke={`${node.color}60`} strokeWidth={1.5}
+            />
+            {node.id === 'core' && (
+              <circle cx={node.cx} cy={node.cy} r={node.r + 4}
+                fill="none" stroke={`${node.color}30`} strokeWidth={1}
+              >
+                <animate
+                  attributeName="r" values={`${node.r + 4};${node.r + 8};${node.r + 4}`}
+                  dur="3s" repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="opacity" values="0.4;0;0.4"
+                  dur="3s" repeatCount="indefinite"
+                />
+              </circle>
+            )}
+            <text
+              x={node.cx} y={node.cy + 1}
+              textAnchor="middle" dominantBaseline="middle"
+              fill={node.color} fontSize={node.id === 'core' ? 9 : 7}
+              fontWeight={600} fontFamily="ui-monospace, monospace"
+            >
+              {node.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+
+      <p className="text-[#71717a] text-[10px] mt-2">
+        POS · Kiosk · KDS · Stock Take · Webhooks · Telemetry — all connected via gRPC
+      </p>
+    </motion.div>
+  )
+}
+
+/* ─── Transaction Pipeline Card (2×1) — sale pipeline visualization ─────── */
+
+const PIPELINE_STEPS = [
+  { icon: ScanLine, label: 'Scan', color: '#f43f5e' },
+  { icon: Tag, label: 'Promote', color: '#f43f5e' },
+  { icon: Calculator, label: 'Total', color: '#f43f5e' },
+  { icon: CreditCard, label: 'Pay', color: '#f43f5e' },
+  { icon: Receipt, label: 'Receipt', color: '#f43f5e' },
+  { icon: PackageMinus, label: 'Inventory', color: '#f43f5e' },
+  { icon: ChefHat, label: 'Kitchen', color: '#f43f5e' },
+  { icon: Radio, label: 'Telemetry', color: '#f43f5e' },
+]
+
+function TransactionPipelineCard() {
+  const [activeStep, setActiveStep] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setActiveStep(s => (s + 1) % PIPELINE_STEPS.length), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <motion.div
+      {...cardMotion(18)}
+      style={{ boxShadow: glowShadow('#f43f5e') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 col-span-1 md:col-span-2`}
+    >
+      <AnimatedBorder />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-[#e4e4e7] text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+          <Activity size={14} className="text-rose-500" /> Transaction Pipeline
+        </h2>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          8 stages
+        </span>
+      </div>
+
+      {/* Pipeline row */}
+      <div className="flex items-center justify-between gap-0.5">
+        {PIPELINE_STEPS.map((step, idx) => {
+          const isActive = idx === activeStep
+          const isPast = idx < activeStep
+          const StepIcon = step.icon
+          return (
+            <div key={step.label} className="flex items-center">
+              <div className="flex flex-col items-center gap-1.5">
+                <motion.div
+                  animate={{
+                    scale: isActive ? 1.15 : 1,
+                    boxShadow: isActive ? `0 0 12px ${step.color}66, 0 0 24px ${step.color}33` : '0 0 0px transparent',
+                  }}
+                  transition={{ duration: 0.3 }}
+                  className="h-8 w-8 rounded-full flex items-center justify-center border transition-colors duration-300"
+                  style={{
+                    borderColor: isActive || isPast ? `${step.color}80` : '#1a1a2e',
+                    background: isActive ? `${step.color}25` : isPast ? `${step.color}10` : '#0a0a0c',
+                  }}
+                >
+                  <StepIcon
+                    size={14}
+                    style={{ color: isActive || isPast ? step.color : '#71717a' }}
+                  />
+                </motion.div>
+                <span
+                  className="text-[8px] font-medium transition-all duration-300 h-3"
+                  style={{
+                    color: isActive ? step.color : isPast ? `${step.color}99` : '#71717a',
+                    opacity: isActive ? 1 : isPast ? 0.7 : 0.4,
+                  }}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {/* Connecting dashed line */}
+              {idx < PIPELINE_STEPS.length - 1 && (
+                <svg width="16" height="2" className="mx-0.5 mt-[-10px]" viewBox="0 0 16 2">
+                  <line
+                    x1="0" y1="1" x2="16" y2="1"
+                    stroke={isPast ? step.color : '#1a1a2e'}
+                    strokeWidth={1.5}
+                    strokeDasharray="3 3"
+                    opacity={isPast ? 0.8 : 0.5}
+                  >
+                    {isPast && (
+                      <animate
+                        attributeName="stroke-dashoffset"
+                        from="0" to="-6"
+                        dur="0.8s" repeatCount="indefinite"
+                      />
+                    )}
+                  </line>
+                </svg>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <p className="text-[#71717a] text-[10px] mt-3">
+        Scan &rarr; Promote &rarr; Total &rarr; Pay &rarr; Receipt &rarr; Inventory &rarr; Kitchen &rarr; Telemetry
+      </p>
+    </motion.div>
+  )
+}
+
+/* ─── Skills Constellation Card (2×1) — 3D skills preview ────────────────── */
+
+const CONSTELLATION_CATEGORIES: { key: SkillCategory; color: string; cx: number; cy: number }[] = [
+  { key: 'frontend', color: SKILL_CAT_COLORS.frontend, cx: 60, cy: 35 },
+  { key: 'backend', color: SKILL_CAT_COLORS.backend, cx: 200, cy: 35 },
+  { key: 'devops', color: SKILL_CAT_COLORS.devops, cx: 60, cy: 85 },
+  { key: 'design', color: SKILL_CAT_COLORS.design, cx: 200, cy: 85 },
+]
+
+const CONSTELLATION_STARS = (() => {
+  const stars: { x: number; y: number; r: number; color: string; cat: string }[] = []
+  let seed = 137
+  CONSTELLATION_CATEGORIES.forEach(cat => {
+    for (let i = 0; i < 5; i++) {
+      seed = (seed * 16807 + 11) % 2147483647
+      const angle = (seed % 360) * (Math.PI / 180)
+      const dist = 12 + (seed % 30)
+      stars.push({
+        x: cat.cx + Math.cos(angle) * dist,
+        y: cat.cy + Math.sin(angle) * dist,
+        r: 1.5 + (seed % 3) * 0.5,
+        color: cat.color,
+        cat: cat.key,
+      })
+    }
+  })
+  return stars
+})()
+
+const CONSTELLATION_LINES = (() => {
+  const lines: { x1: number; y1: number; x2: number; y2: number; color: string }[] = []
+  CONSTELLATION_CATEGORIES.forEach(cat => {
+    const catStars = CONSTELLATION_STARS.filter(s => s.cat === cat.key)
+    for (let i = 0; i < catStars.length - 1; i++) {
+      lines.push({
+        x1: catStars[i].x, y1: catStars[i].y,
+        x2: catStars[i + 1].x, y2: catStars[i + 1].y,
+        color: cat.color,
+      })
+    }
+  })
+  return lines
+})()
+
+function SkillsConstellationCard() {
+  return (
+    <motion.div
+      {...cardMotion(19)}
+      style={{ boxShadow: glowShadow('#8b5cf6') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 col-span-1 md:col-span-2`}
+    >
+      <AnimatedBorder />
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[#e4e4e7] text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+          <Star size={14} className="text-violet-500" /> Skills Constellation
+        </h2>
+        <span className="text-[10px] text-[#71717a]">23 skills &middot; 4 categories</span>
+      </div>
+
+      {/* Star field SVG */}
+      <svg viewBox="0 0 260 120" className="w-full" style={{ height: 120 }}>
+        <defs>
+          <linearGradient id="shooting-star-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0} />
+            <stop offset="50%" stopColor="#8b5cf6" stopOpacity={0.8} />
+            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+
+        {/* Faint constellation lines */}
+        {CONSTELLATION_LINES.map((line, i) => (
+          <line
+            key={i}
+            x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2}
+            stroke={line.color} strokeWidth={0.5} opacity={0.25}
+          />
+        ))}
+
+        {/* Star dots with pulse animation */}
+        {CONSTELLATION_STARS.map((star, i) => (
+          <circle
+            key={i}
+            cx={star.x} cy={star.y} r={star.r}
+            fill={star.color} opacity={0.7}
+          >
+            <animate
+              attributeName="opacity" values="0.4;0.9;0.4"
+              dur={`${2 + (i % 3)}s`} repeatCount="indefinite"
+              begin={`${(i * 0.3) % 2}s`}
+            />
+            <animate
+              attributeName="r" values={`${star.r};${star.r + 0.8};${star.r}`}
+              dur={`${2.5 + (i % 4) * 0.5}s`} repeatCount="indefinite"
+              begin={`${(i * 0.2) % 2}s`}
+            />
+          </circle>
+        ))}
+
+        {/* Shooting star trace */}
+        <line
+          x1="0" y1="30" x2="30" y2="25"
+          stroke="url(#shooting-star-grad)" strokeWidth={1.5}
+          strokeLinecap="round"
+        >
+          <animateMotion
+            dur="4s" repeatCount="indefinite"
+            path="M0,30 L260,90"
+          />
+        </line>
+      </svg>
+
+      {/* Category legend */}
+      <div className="flex items-center gap-4 mt-2">
+        {CONSTELLATION_CATEGORIES.map(cat => (
+          <div key={cat.key} className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: cat.color }} />
+            <span className="text-[10px] text-[#71717a]">{SKILL_CAT_LABELS[cat.key]}</span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+/* ─── Promotion Engine Card (2×1) — IF → THEN rule builder ────────────────── */
+
+const PROMO_RULES = [
+  { qual: 'Min Spend $30', reward: '10% Off Order' },
+  { qual: 'Buy 3+ Items', reward: 'Cheapest Free' },
+  { qual: 'Specific Product', reward: '$5 Flat Discount' },
+]
+
+function PromotionEngineCard() {
+  const [ruleIdx, setRuleIdx] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setRuleIdx(p => (p + 1) % PROMO_RULES.length), 2500)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <motion.div
+      {...cardMotion(20)}
+      style={{ boxShadow: glowShadow('#f59e0b') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 col-span-1 md:col-span-2`}
+    >
+      <AnimatedBorder />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-[#e4e4e7] text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+          <Gift size={14} className="text-amber-500" /> Promotion Engine
+        </h2>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          IF → THEN
+        </span>
+      </div>
+
+      {/* Rule display */}
+      <div className="relative h-14 flex items-center justify-center overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={ruleIdx}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.35, ease: 'easeInOut' }}
+            className="absolute inset-0 flex items-center justify-center gap-3"
+          >
+            {/* Qualification badge */}
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
+              <Tag size={12} /> {PROMO_RULES[ruleIdx].qual}
+            </span>
+            {/* Arrow */}
+            <ArrowRight size={16} className="text-amber-500/60 shrink-0" />
+            {/* Reward badge */}
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+              <Zap size={12} /> {PROMO_RULES[ruleIdx].reward}
+            </span>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Progress dots */}
+      <div className="flex justify-center gap-1.5 mt-3 mb-3">
+        {PROMO_RULES.map((_, i) => (
+          <span
+            key={i}
+            className="h-1 rounded-full transition-all duration-300"
+            style={{
+              width: i === ruleIdx ? 16 : 6,
+              background: i === ruleIdx ? '#f59e0b' : '#27272a',
+            }}
+          />
+        ))}
+      </div>
+
+      <p className="text-[#71717a] text-[10px] text-center">
+        14 reward types &middot; JSON-parameterized vouchers
+      </p>
+    </motion.div>
+  )
+}
+
+/* ─── Offline Sync Card (2×1) — offline sync status preview ───────────────── */
+
+const SYNC_STATES = [
+  { label: 'Online', sub: 'gRPC active', color: '#22c55e', icon: 'wifi' as const },
+  { label: 'Offline', sub: 'SQLite queuing', color: '#ef4444', icon: 'wifi-off' as const, queue: 3 },
+  { label: 'Synced', sub: 'Zero data loss', color: '#10b981', icon: 'check' as const },
+]
+
+function OfflineSyncCard() {
+  const [stateIdx, setStateIdx] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setStateIdx(p => (p + 1) % SYNC_STATES.length), 2500)
+    return () => clearInterval(id)
+  }, [])
+
+  const IconMap = { wifi: Wifi, 'wifi-off': WifiOff, check: CheckCircle }
+
+  return (
+    <motion.div
+      {...cardMotion(21)}
+      style={{ boxShadow: glowShadow('#06b6d4') }}
+      className={`${CARD_BASE} ${CARD_BG} p-6 col-span-1 md:col-span-2`}
+    >
+      <AnimatedBorder />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-[#e4e4e7] text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+          <Database size={14} className="text-cyan-500" /> Offline Sync
+        </h2>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+          resilient
+        </span>
+      </div>
+
+      {/* Status indicators */}
+      <div className="flex flex-col gap-2">
+        {SYNC_STATES.map((st, i) => {
+          const Icon = IconMap[st.icon]
+          const active = i === stateIdx
+          return (
+            <motion.div
+              key={st.label}
+              animate={{
+                opacity: active ? 1 : 0.35,
+                scale: active ? 1 : 0.97,
+              }}
+              transition={{ duration: 0.35, ease: 'easeInOut' }}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors"
+              style={{
+                background: active ? `${st.color}08` : 'transparent',
+                borderColor: active ? `${st.color}30` : '#1a1a2e',
+              }}
+            >
+              {/* Status dot / icon */}
+              <span className="relative flex h-5 w-5 items-center justify-center">
+                <Icon size={14} style={{ color: st.color }} />
+                {active && (
+                  <motion.span
+                    className="absolute inset-0 rounded-full"
+                    style={{ background: st.color }}
+                    animate={{ scale: [1, 1.8, 1], opacity: [0.4, 0, 0.4] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                )}
+              </span>
+
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-medium" style={{ color: active ? st.color : '#71717a' }}>
+                  {st.label}
+                </span>
+                <span className="text-[10px] text-[#52525b] ml-2">{st.sub}</span>
+              </div>
+
+              {/* Queue counter for offline state */}
+              {st.queue && active && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20"
+                >
+                  {st.queue} queued
+                </motion.span>
+              )}
+            </motion.div>
+          )
+        })}
+      </div>
+
+      <p className="text-[#71717a] text-[10px] mt-3 text-center">
+        Seamless offline → online reconciliation
+      </p>
+    </motion.div>
+  )
+}
+
 /* ─── Payment Wall Card (2×1) — integrated payment methods ────────────────── */
 
 const PAYMENT_LOGOS = [
@@ -676,7 +1418,7 @@ function PaymentWallCard() {
         ))}
       </div>
       <p className="text-[#71717a] text-[10px] mt-3">
-        Every method reconciled to the cent — zero financial incidents across all integrations.
+        Every integration uses provider-specific validation, idempotency, and recovery behavior.
       </p>
     </motion.div>
   )
@@ -686,11 +1428,11 @@ function PaymentWallCard() {
 
 const TERMINAL_LINES = [
   { text: '$ dotnet publish -c Release', color: '#e4e4e7' },
-  { text: '✓ 30 modules compiled — net8.0', color: '#10b981' },
-  { text: '$ git push origin main', color: '#e4e4e7' },
-  { text: '✓ zero-downtime deploy · 14s', color: '#10b981' },
-  { text: '$ uptime --pos-cluster', color: '#e4e4e7' },
-  { text: '99.99% · 0 incidents · SGT online', color: '#3b82f6' },
+  { text: '✓ 30 modules targeted — net8.0', color: '#10b981' },
+  { text: '$ grpc services list', color: '#e4e4e7' },
+  { text: '✓ 40+ service endpoints discovered', color: '#10b981' },
+  { text: '$ reliability verify --offline', color: '#e4e4e7' },
+  { text: '✓ queue · retry · reconcile', color: '#3b82f6' },
 ]
 
 function TerminalCard() {
@@ -889,9 +1631,21 @@ function TestimonialCard() {
   const len = TESTIMONIALS_DATA.length
 
   useEffect(() => {
+    if (len < 2) return
     const id = setInterval(() => setActive(a => (a + 1) % len), 5000)
     return () => clearInterval(id)
   }, [len])
+
+  if (len === 0) {
+    return (
+      <motion.div {...cardMotion(18)} style={{ boxShadow: glowShadow('#8b5cf6') }} className={`${CARD_BASE} ${GLASS} p-7 col-span-1 md:col-span-2 min-h-[200px]`}>
+        <AnimatedBorder />
+        <Quote size={18} className="text-violet-500 mb-3" />
+        <p className="text-[#e4e4e7] text-sm font-semibold">References available on request</p>
+        <p className="text-[#71717a] text-xs mt-2">Recommendations are published only with explicit permission.</p>
+      </motion.div>
+    )
+  }
 
   const t = TESTIMONIALS_DATA[active]
 
@@ -1002,7 +1756,7 @@ function SocialCard() {
       <AnimatedBorder />
       <h2 className="text-[#e4e4e7] text-xs font-semibold uppercase tracking-wider mb-3">Social</h2>
       <div className="grid grid-cols-3 gap-3">
-        {SOCIAL_LINKS.map(link => {
+        {SOCIAL_LINKS.filter((link) => link.url).map(link => {
           const Icon = SOCIAL_ICON_MAP[link.platform] ?? ExternalLink
           return (
             <a
@@ -1062,7 +1816,7 @@ function ContactCard() {
         </a>
         {/* social icon buttons */}
         <div className="flex gap-2">
-          {SOCIAL_LINKS.map(link => {
+          {SOCIAL_LINKS.filter((link) => link.url).map(link => {
             const Icon = SOCIAL_ICON_MAP[link.platform] ?? ExternalLink
             return (
               <a
@@ -1108,6 +1862,8 @@ function FooterBar() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
+            whileHover={{ scale: 1.08, y: -3 }}
+            whileTap={{ scale: 0.94 }}
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="fixed bottom-6 right-6 z-40 h-11 w-11 rounded-2xl bg-[#111113] border border-[#1a1a2e] flex items-center justify-center text-[#a1a1aa] hover:text-emerald-400 hover:border-emerald-500/40 transition-colors"
             aria-label="Back to top"
@@ -1131,7 +1887,7 @@ const CATEGORIES: SkillCategory[] = ['frontend', 'backend', 'devops', 'design']
 const featuredProjects = PROJECTS.filter(p => p.featured).slice(0, 3)
 
 export default function Portfolio4Bento() {
-  const { onMove, pos } = useCursorGlow()
+  const { onMove, onLeave, ref: glowRef } = useCursorGlow()
   const location = useLocation()
 
   useEffect(() => {
@@ -1144,14 +1900,14 @@ export default function Portfolio4Bento() {
     <div
       className="min-h-screen bg-[#09090b] text-[#e4e4e7] px-4 py-6 md:px-8 md:py-10 lg:px-12"
       onMouseMove={onMove}
+      onMouseLeave={onLeave}
     >
       {/* cursor glow spotlight */}
       <div
-        className="fixed pointer-events-none z-50 w-[600px] h-[600px] rounded-full opacity-[0.07] transition-transform duration-75"
+        ref={glowRef}
+        className="cursor-glow fixed left-0 top-0 pointer-events-none z-50 w-[600px] h-[600px] rounded-full opacity-[0.07]"
         style={{
           background: 'radial-gradient(circle, rgba(16,185,129,0.5) 0%, rgba(59,130,246,0.2) 40%, transparent 70%)',
-          left: pos.x - 300,
-          top: pos.y - 300,
         }}
       />
 
@@ -1180,6 +1936,27 @@ export default function Portfolio4Bento() {
         {featuredProjects.map((p, idx) => (
           <ProjectCard key={p.slug} project={p} i={12 + idx} />
         ))}
+
+        {/* Device Fleet (2×1) */}
+        <DeviceFleetCard />
+
+        {/* Kiosk (1×1) + Stock Take (1×1) */}
+        <KioskCard />
+        <StockTakeCard />
+
+        {/* Kitchen Display (2×1) */}
+        <KitchenDisplayCard />
+
+        {/* Ecosystem (2×1) */}
+        <EcosystemCard />
+
+        {/* Transaction Pipeline (2×1) + Skills Constellation (2×1) */}
+        <TransactionPipelineCard />
+        <SkillsConstellationCard />
+
+        {/* Promotion Engine (2×1) + Offline Sync (2×1) */}
+        <PromotionEngineCard />
+        <OfflineSyncCard />
 
         {/* Payment methods wall */}
         <PaymentWallCard />
@@ -1234,6 +2011,47 @@ export default function Portfolio4Bento() {
         }
         .animate-equalizer {
           animation: equalizer 0.8s ease-in-out infinite;
+        }
+
+        /* GPU cursor glow — transform only, no layout work */
+        .cursor-glow {
+          transform: translate3d(-999px, -999px, 0);
+          transition: transform 90ms linear;
+          will-change: transform;
+        }
+
+        /* shimmering hero title */
+        .bento-hero-title {
+          background: linear-gradient(92deg, #e4e4e7 0%, #10b981 28%, #3b82f6 52%, #8b5cf6 72%, #e4e4e7 100%);
+          background-size: 250% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          -webkit-text-fill-color: transparent;
+          animation: gradient-shift 7s ease-in-out infinite;
+        }
+
+        /* card hover micro-polish */
+        .bento-card {
+          transition: border-color 0.3s ease;
+        }
+        .bento-card:hover {
+          border-color: #2a2a3e;
+        }
+
+        /* heatmap cell hover ring */
+        .hm-cell:hover {
+          box-shadow: 0 0 0 1.5px #39d353, 0 0 8px rgba(57,211,83,0.6);
+        }
+
+        ::selection {
+          background: #10b981;
+          color: #09090b;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .cursor-glow { transition: none; }
+          * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
         }
       `}</style>
     </div>

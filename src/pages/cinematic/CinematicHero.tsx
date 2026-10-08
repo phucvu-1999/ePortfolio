@@ -21,10 +21,10 @@ import { HeroCanvas } from './CinematicScene'
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const HERO_STATS = [
-  { value: 7, suffix: '+', label: 'Years Shipping' },
+  { value: 5, suffix: '+', label: 'Years Experience' },
   { value: 30, suffix: '+', label: 'POS Modules' },
   { value: 20, suffix: '+', label: 'Payment Methods' },
-  { value: 0, suffix: '', label: 'Financial Incidents' },
+  { value: 5, suffix: '', label: 'Device Types' },
 ]
 
 export function HeroSection() {

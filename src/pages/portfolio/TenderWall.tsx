@@ -230,10 +230,10 @@ const AMOUNT_DUE = '$ 128.40'
 const BARCODE = [2, 1, 3, 1, 1, 2, 4, 1, 2, 1, 3, 2, 1, 1, 4, 1, 2, 3, 1, 2, 1, 1, 2, 4]
 
 const FOOTER_STATS = [
-  { value: '16', label: 'tender strategies' },
-  { value: '0', label: 'financial incidents' },
+  { value: '20+', label: 'payment methods' },
+  { value: '8', label: 'NETS transaction types' },
   { value: '7×14', label: 'telemetry events' },
-  { value: '$200K+', label: 'processed live' },
+  { value: '6', label: 'ECR protocol versions' },
 ]
 
 // ── Tiny receipt helpers ─────────────────────────────────────────────────────

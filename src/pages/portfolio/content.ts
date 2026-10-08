@@ -5,6 +5,8 @@
 // Based on V5 POS — an enterprise Point-of-Sale ecosystem with 30+ modules,
 // running on Windows, Android, and iOS, with gRPC microservices backend.
 
+import { PORTFOLIO_PROFILE, isPublishableMetric } from './profile'
+
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
 export interface CareerProject {
@@ -51,9 +53,34 @@ export interface SkillsGraph {
   edges: [string, string][]
 }
 
+export interface CaseStudyTradeoff {
+  decision: string
+  benefit: string
+  cost: string
+}
+
+export interface CaseStudyComparison {
+  dimension: string
+  before: string
+  after: string
+  evidence?: string
+}
+
+export interface CaseStudyEvidenceItem {
+  label: string
+  description: string
+  kind: 'product' | 'architecture' | 'metric'
+}
+
 export interface CaseStudy {
   problem: string
   approach: string
+  ownership: string[]
+  teamContext?: string
+  constraints: string[]
+  tradeoffs: CaseStudyTradeoff[]
+  beforeAfter: CaseStudyComparison[]
+  evidence: CaseStudyEvidenceItem[]
   architecture: string[]
   stack: string[]
   metrics: Array<{ label: string; value: string }>
@@ -79,7 +106,8 @@ export interface Testimonial {
   name: string
   role: string
   company: string
-  email: string
+  email?: string
+  verified: boolean
   avatar: string
   pr: number
   reactions: { thumbsUp: number; heart: number; rocket: number }
@@ -101,24 +129,18 @@ export const CONTENT_FLAGS = {
 // ─── GitHub Integration ─────────────────────────────────────────────────────
 // Set to a GitHub username to fetch real contribution data.
 // Leave empty to use generated demo data with a "Sample data" badge.
-export const GITHUB_USERNAME = ''
+export const GITHUB_USERNAME = PORTFOLIO_PROFILE.githubUsername
 
 // ─── Identity ───────────────────────────────────────────────────────────────
 
-export const CONTACT_EMAIL = 'hello@portfolio.dev'
-
-export const HERO_NAME = 'EPOS V5'
-export const HERO_ROLE = 'Enterprise POS Systems Engineer'
-
-export const SOCIAL_LINKS: SocialLink[] = [
-  { platform: 'GitHub', url: '' },
-  { platform: 'LinkedIn', url: '' },
-  { platform: 'Twitter', url: '' },
-]
+export const CONTACT_EMAIL = PORTFOLIO_PROFILE.email
+export const HERO_NAME = PORTFOLIO_PROFILE.displayName
+export const HERO_ROLE = PORTFOLIO_PROFILE.role
+export const SOCIAL_LINKS: SocialLink[] = PORTFOLIO_PROFILE.links
 
 // ─── Career Chapters ────────────────────────────────────────────────────────
 
-export const CAREER_CHAPTERS: CareerChapter[] = [
+const CAREER_CHAPTERS_SOURCE: CareerChapter[] = [
   {
     year: '2020',
     company: 'EPOS Singapore',
@@ -127,7 +149,7 @@ export const CAREER_CHAPTERS: CareerChapter[] = [
     color: '#10b981',
     challenge: 'Fresh engineer, real money — core POS modules for Singapore retail chains, live transactions from day one.',
     projects: [
-      { name: 'POS Transaction Engine', desc: 'The heartbeat of every store — sale, payment, refund. Live money from day one.', badges: ['Live transactions', '99.9% uptime'], image: '/epos/epos.png' },
+      { name: 'POS Transaction Engine', desc: 'The heartbeat of every store — sale, payment, refund. Live money from day one.', badges: ['Live transactions', 'Offline-capable'], image: '/epos/epos.png' },
       { name: 'QuickPick & Sale UI', desc: 'Barcode scan, instant search, real-time cart — speed is the feature.', badges: ['Sub-second scan', '1000s of SKUs'], image: '/epos/linkpoint_scan_qr_code.png' },
       { name: 'Shift & Cashbox Management', desc: 'Shift open/close, cash drawer reconciliation, end-shift SKU reports.', badges: ['Auto reconcile', 'Zero drift'], visual: 'cashbox' },
       { name: 'Receipt Printing Pipeline', desc: 'Thermal receipts + A4 invoices — barcodes, logos, even Chinese characters.', badges: ['2 formats', 'CJK-safe'], visual: 'printer' },
@@ -177,7 +199,7 @@ export const CAREER_CHAPTERS: CareerChapter[] = [
       {
         name: '20+ Payment Strategies',
         desc: 'Every method an isolated strategy — new gateways plug in, core untouched.',
-        badges: ['20+ methods', '0 incidents'],
+        badges: ['20+ methods', 'Idempotent recovery'],
         image: '/epos/credit_card.png',
         logos: ['/epos/visa_logo.png', '/epos/master_card_logo.png', '/epos/paynow_logo.png', '/epos/grab_pay_logo.png', '/epos/alipay_plus_logo.png', '/epos/wechat_pay_logo.png', '/epos/kakao_pay_logo.png', '/epos/shopee_pay_logo.png', '/epos/touch_n_go_ewallet_logo.png', '/epos/true_money_logo.png'],
       },
@@ -228,6 +250,11 @@ export const CAREER_CHAPTERS: CareerChapter[] = [
     skills: ['.NET 8', 'gRPC', 'Xamarin', 'WPF', 'ClickOnce', 'Sentry', 'Architecture'],
   },
 ]
+
+export const CAREER_CHAPTERS: CareerChapter[] = CAREER_CHAPTERS_SOURCE.map((chapter) => ({
+  ...chapter,
+  metrics: chapter.metrics.filter(isPublishableMetric),
+}))
 
 // ─── Skills Graph ───────────────────────────────────────────────────────────
 
@@ -286,14 +313,31 @@ export const SKILL_CAT_LABELS: Record<SkillCategory, string> = {
 
 // ─── Projects ───────────────────────────────────────────────────────────────
 
-export const PROJECTS: Project[] = [
+const PROJECTS_SOURCE: Project[] = [
   {
     title: 'EPOS V5 — Enterprise POS Ecosystem', file: 'epos-v5', slug: 'epos-v5',
-    desc: 'Mission-critical Point-of-Sale ecosystem with 30+ modules: 20+ payment methods (NETS, NETS Online QR, PayNow, Adyen, Alipay+), NTUC Linkpoints loyalty, NEA government e-vouchers, and 5 device types — processing $200K+ in real transactions across Singapore retail.',
+    desc: 'Mission-critical Point-of-Sale ecosystem with 30+ modules: 20+ payment methods (NETS, NETS Online QR, PayNow, Adyen, Alipay+), NTUC Linkpoints loyalty, NEA government e-vouchers, and 5 coordinated device types across Singapore retail.',
     tags: ['C#', '.NET 8', 'gRPC', 'WPF', 'Xamarin'], color: '#10b981', stars: 1247, featured: true, liveUrl: '', sourceUrl: '',
     caseStudy: {
-      problem: 'Retail chains in Singapore needed a POS system that handles real-time transactions across multiple device types (terminal, kiosk, kitchen display), supports 20+ payment methods including NETS, PayNow, and GrabPay, works offline during network outages, and scales to thousands of daily transactions — all with zero financial discrepancies.',
+      problem: 'Retail chains in Singapore needed a POS system that handles real-time transactions across multiple device types, supports 20+ payment methods including NETS, PayNow, and GrabPay, works through network outages, and protects financial consistency across retries and reconciliation.',
       approach: 'Designed a modular gRPC microservices architecture with a Strategy Pattern payment engine (20 payment strategies, 14 promotion reward types). The offline-first sync architecture uses SQLite locally with REST/gRPC reconciliation. Multi-platform support via .NET 8 for Windows (WPF), Xamarin for Android/iOS, and dedicated apps for kitchen displays, customer screens, and warehouse management.',
+      ownership: ['Designed payment and promotion extension boundaries', 'Led dependency-ordered .NET 8 migration planning', 'Built client workflows across POS, kiosk, kitchen, and customer displays'],
+      teamContext: 'Cross-functional product, QA, operations, and engineering delivery; team size is not published.',
+      constraints: ['A sale must continue during network loss', 'Payment and voucher operations require idempotent recovery', 'Existing stores could not pause while modules migrated'],
+      tradeoffs: [
+        { decision: 'Local-first writes with queued synchronization', benefit: 'Checkout remains responsive during outages', cost: 'Reconciliation and conflict rules become explicit system concerns' },
+        { decision: 'Strategy interfaces for payment providers', benefit: 'New providers do not modify the checkout core', cost: 'More adapters and provider-specific lifecycle tests' },
+      ],
+      beforeAfter: [
+        { dimension: 'Runtime', before: '.NET Framework 4.6.2', after: '.NET 8 LTS', evidence: '22 application and shared-library modules migrated' },
+        { dimension: 'Device topology', before: 'Terminal-centric workflows', after: 'Five coordinated device types', evidence: 'POS, kiosk, kitchen, customer display, and warehouse clients' },
+        { dimension: 'Connectivity', before: 'Backend availability on the critical path', after: 'SQLite local commit with background reconciliation' },
+      ],
+      evidence: [
+        { label: 'Product screens', description: 'Anonymized EPOS, loyalty, voucher, and kiosk visuals in the gallery.', kind: 'product' },
+        { label: 'Architecture inventory', description: 'Documented module, endpoint, payment-method, and device counts.', kind: 'architecture' },
+        { label: 'Operational design', description: 'Offline queue, telemetry isolation, and payment recovery flows.', kind: 'metric' },
+      ],
       architecture: [
         'gRPC microservices backend with 40+ service endpoints (Orders, Products, Inventory, Payments, Members, Shifts, Promotions, KDS streaming, Table management)',
         'Strategy Pattern payment module: Cash, Card, NETS, NETS Online QR, PayNow, GrabPay, PayPal, EzyNet, eWallet, Vouchers, Points, Store Credit, Package Redemption',
@@ -333,6 +377,21 @@ export const PROJECTS: Project[] = [
     caseStudy: {
       problem: 'Singapore retail runs on an unusually dense payment landscape: the NETS national network (terminals speaking 6 different ECR protocol versions), dynamic QR standards (NETS Online QR, PayNow), international acquirers (Adyen, Alipay+), the FairPrice Group loyalty program (NTUC Linkpoints), and government disbursement e-vouchers (NEA). Each has unique protocols, auth schemes, and failure modes — and all of them must work offline-tolerant, at checkout speed, with perfect financial accuracy.',
       approach: 'Built every integration as an isolated strategy behind a common OperationStrategy contract, with a dedicated service layer per provider (gRPC to backend, serial/REST to terminals). NETS Online QR runs an async state machine — QR payload with server-side expiry, 5-second validation polling, retry that re-issues a fresh paymentId, cancel-by-paymentId — mirrored to the customer second display. NTUC Linkpoints and NEA vouchers wrap their own lifecycles: OAuth-style token refresh, idempotent redemption keys, audit updates, and void compensation when orders are refunded.',
+      ownership: ['Implemented provider-specific payment strategies', 'Designed QR expiry, polling, retry, and cancellation states', 'Added loyalty and voucher compensation paths for refunds'],
+      constraints: ['Multiple terminal protocol generations must coexist', 'Duplicate callbacks cannot create duplicate charges', 'Telemetry failures must never block payment completion'],
+      tradeoffs: [
+        { decision: 'Provider adapters behind one operation contract', benefit: 'Checkout orchestration stays provider-neutral', cost: 'Each adapter owns more protocol and timeout logic' },
+        { decision: 'Poll dynamic QR status every five seconds', benefit: 'Predictable terminal load and clear expiry handling', cost: 'Confirmation is not instantaneous' },
+      ],
+      beforeAfter: [
+        { dimension: 'Integration model', before: 'Provider behavior coupled to checkout', after: 'Isolated strategies behind a common contract' },
+        { dimension: 'QR recovery', before: 'Expired payment requires manual restart', after: 'Revalidate, cancel old payment ID, issue fresh QR' },
+        { dimension: 'Refund safety', before: 'Payment reversal only', after: 'Payment, points, and voucher compensation' },
+      ],
+      evidence: [
+        { label: 'Provider matrix', description: 'Eight NETS transaction types across six ECR protocol versions.', kind: 'architecture' },
+        { label: 'Recovery model', description: 'Explicit payment states for validation, expiry, retry, cancellation, and void.', kind: 'product' },
+      ],
       architecture: [
         'NETS ECR terminal integration: 8 transaction types (NETS Pay, FlashPay/CEPAS, CashCard, Credit Card, QR, Auto, UOB, UnionPay) across 6 ECR versions (V2.58 → ECR3 V3.0.008), with logon, TMS, settlement, last-transaction retrieval, and void',
         'NETS Online QR state machine: server-generated payload → expiry countdown → 5s DispatcherTimer validation polling → auto-retry with new paymentId → cancel transaction by paymentId; QR rendered on both cashier and customer displays',
@@ -369,6 +428,20 @@ export const PROJECTS: Project[] = [
     caseStudy: {
       problem: 'A checkout engine for mixed retail + F&B has to handle everything a cashier can legally do: split a bill three ways (by items, by mix, per pax), build set menus with add-on groups, weigh fresh produce, scan serialized electronics, accept trade-ins, park an order mid-transaction and resume it hours later, route kitchen items to the right printer, and attribute commission to multiple salespeople — without ever blocking the sale.',
       approach: 'Built a reactive sale-order core on ReactiveUI + DynamicData, with a fluent OrderBuilder that assembles order state declaratively (customer, table, queue number, sale notes, void reasons, NTUC Linkpoints, on-account balance) before sync. Split payments operate on the builder directly — two live groups with independent subtotals, each held and synced individually. Special goods (weight scale, serial numbers, trade-ins) plug in as popup view-models over the same order-item pipeline.',
+      ownership: ['Built reactive cart and payment orchestration', 'Designed the fluent OrderBuilder state boundary', 'Integrated split bills, held orders, and special-goods workflows'],
+      constraints: ['Cart updates must remain fast with thousands of SKUs', 'Held orders must restore every pricing decision', 'Split orders must preserve inventory and kitchen routing'],
+      tradeoffs: [
+        { decision: 'Incremental DynamicData bindings', benefit: 'Only changed cart rows re-render', cost: 'Reactive subscriptions require disciplined disposal' },
+        { decision: 'One rich order builder', benefit: 'Checkout state is assembled consistently', cost: 'The orchestration surface remains intentionally broad' },
+      ],
+      beforeAfter: [
+        { dimension: 'Cart updates', before: 'Whole-list refresh behavior', after: 'Incremental item-level updates' },
+        { dimension: 'Order recovery', before: 'Partial held-order context', after: 'Full customer, promotion, payment, and routing state' },
+      ],
+      evidence: [
+        { label: 'Workflow coverage', description: 'Three split modes plus weight, serial-number, trade-in, and set-menu paths.', kind: 'product' },
+        { label: 'Core orchestration', description: 'A documented 3.6K-line checkout view-model and fluent builder API.', kind: 'architecture' },
+      ],
       architecture: [
         'BaseSaleOrderViewModel — 3,600+ lines of reactive checkout orchestration: cart mutations, pricing recalculation, promotion application, payment sequencing',
         'Three split-payment modes: SplitByItems (two-group item picker with per-group subtotals), SplitByMix, and SplitByPax — each with pre-settlement bill printing and per-split hold + sync',
@@ -400,6 +473,20 @@ export const PROJECTS: Project[] = [
     caseStudy: {
       problem: 'Retail POS systems cannot afford downtime during network outages. Stores must continue processing sales, accepting payments, and printing receipts even when the backend server is unreachable. Data must be reconciled without conflicts when connectivity is restored.',
       approach: 'Built a dual-database sync engine: SQLite for local transactions, PostgreSQL for backend aggregation. Every sale is written locally first (instant response), then background jobs (Hangfire on Windows, Quartz.NET on mobile) sync to the backend via REST/gRPC. Conflict resolution handles concurrent edits, and the sync queue persists across app restarts.',
+      ownership: ['Designed local-first transaction persistence', 'Implemented durable background synchronization', 'Defined reconnect and conflict-recovery behavior'],
+      constraints: ['Network availability cannot block a sale', 'Queued work must survive process restarts', 'Retries must not duplicate financial operations'],
+      tradeoffs: [
+        { decision: 'Commit locally before remote synchronization', benefit: 'Immediate checkout response and outage tolerance', cost: 'Eventual consistency must be visible and recoverable' },
+        { decision: 'Separate Windows and mobile schedulers', benefit: 'Native background execution on each platform', cost: 'Two scheduling implementations require parity tests' },
+      ],
+      beforeAfter: [
+        { dimension: 'Outage behavior', before: 'Remote availability gates transaction flow', after: 'Sales commit locally and queue for synchronization' },
+        { dimension: 'Reconnect behavior', before: 'Manual recovery risk', after: 'Durable queue resumes with conflict handling' },
+      ],
+      evidence: [
+        { label: 'Recovery path', description: 'Local commit, persistent queue, retry, reconciliation, and completion states.', kind: 'architecture' },
+        { label: 'Interactive proof', description: 'The Reliability Lab demonstrates outage and reconnect behavior.', kind: 'product' },
+      ],
       architecture: [
         'SQLite local database via Entity Framework Core for offline transaction storage',
         'Hangfire background jobs (Windows) and Quartz.NET (mobile) for scheduled sync tasks',
@@ -430,6 +517,25 @@ export const PROJECTS: Project[] = [
     caseStudy: {
       problem: 'The V5 POS ecosystem was built on .NET Framework 4.6.2 (released 2016), which reached end-of-life. Modern .NET 8 offers significant performance improvements, better cross-platform support, and long-term servicing — but migrating 30+ interconnected modules with zero downtime required meticulous planning.',
       approach: 'Designed a 4-phase migration: (1) Shared core libraries, (2) Windows projects, (3) Android projects, (4) iOS projects. Each phase has explicit dependency ordering, breaking change documentation, and rollback plans. Key breaking changes handled: Grpc.Core → Grpc.Net.Client, EF Core 2.2 → 8.0, Newtonsoft.Json → System.Text.Json, and WPF SDK-style project conversion.',
+      ownership: ['Authored the phased dependency migration plan', 'Mapped framework and library breaking changes', 'Defined validation and rollback boundaries for each phase'],
+      teamContext: 'Migration coordinated across shared libraries and client applications; team size is not published.',
+      constraints: ['Production delivery continued during migration', 'Shared libraries had to move before dependent clients', 'No unsupported performance deltas are published without benchmarks'],
+      tradeoffs: [
+        { decision: 'Bottom-up migration in four phases', benefit: 'Limits cascading build failures and rollback scope', cost: 'Temporary mixed-runtime compatibility work' },
+        { decision: 'Adopt SDK-style projects and current clients together', benefit: 'Removes legacy build and transport dependencies', cost: 'More breaking changes concentrated in the migration window' },
+      ],
+      beforeAfter: [
+        { dimension: 'Runtime', before: '.NET Framework 4.6.2', after: '.NET 8 LTS', evidence: 'Target framework configuration and migrated module inventory' },
+        { dimension: 'Project format', before: 'Legacy .csproj', after: 'SDK-style projects', evidence: 'Windows project conversion plan' },
+        { dimension: 'gRPC client', before: 'Grpc.Core channel', after: 'Grpc.Net.Client', evidence: 'Channel and transport migration checklist' },
+        { dimension: 'Data layer', before: 'EF Core 2.2', after: 'EF Core 8', evidence: 'Model validation and query compatibility review' },
+        { dimension: 'Module progress', before: '0 of 22 migrated', after: '22 of 22 migrated', evidence: 'Published project scope; private benchmarks omitted' },
+      ],
+      evidence: [
+        { label: 'Migration matrix', description: 'Four phases ordered from shared libraries through desktop and mobile clients.', kind: 'architecture' },
+        { label: 'Completion scope', description: '22 documented modules moved to the target runtime.', kind: 'metric' },
+        { label: 'Benchmark policy', description: 'Startup, memory, and deployment deltas remain unpublished until measured data is supplied.', kind: 'metric' },
+      ],
       architecture: [
         'Bottom-up dependency migration: epos_models → epos_core → epos_client_lib → epos_client_windows',
         'SDK-style project files replacing legacy .csproj format for all Windows projects',
@@ -460,6 +566,20 @@ export const PROJECTS: Project[] = [
     caseStudy: {
       problem: 'A retail store needs multiple device types working in concert: cashiers use POS terminals, customers use self-service kiosks, kitchen staff need live order displays, a second screen shows order info and ads to customers, and warehouse staff manage inventory on handheld devices — all sharing the same order and product data in real-time.',
       approach: 'Built a shared core library (epos_client_lib, epos_client_models) that contains all business logic, data models, and gRPC communication. Each device type is a thin UI layer on top: WPF for Windows apps, Xamarin for Android/iOS. gRPC streaming pushes real-time order updates to kitchen displays without polling.',
+      ownership: ['Structured shared client models and business services', 'Implemented device-specific presentation layers', 'Built server-pushed kitchen order updates'],
+      constraints: ['Windows, Android, and iOS have different platform APIs', 'Devices must share domain behavior without sharing UI code', 'Kitchen updates must arrive without manual refresh'],
+      tradeoffs: [
+        { decision: 'Shared domain core with thin platform clients', benefit: 'Business rules remain consistent across devices', cost: 'Platform boundaries and conditional compilation need active management' },
+        { decision: 'gRPC streaming for kitchen orders', benefit: 'Low-latency server push without polling', cost: 'Connection lifecycle and reconnect handling are more complex' },
+      ],
+      beforeAfter: [
+        { dimension: 'Client architecture', before: 'Device-specific business behavior', after: 'Shared core with platform-specific UI shells' },
+        { dimension: 'Kitchen updates', before: 'Refresh or polling model', after: 'gRPC server-push stream' },
+      ],
+      evidence: [
+        { label: 'Device inventory', description: 'Five device roles spanning Windows, Android, and iOS clients.', kind: 'architecture' },
+        { label: 'Product visuals', description: 'Anonymized kiosk, POS, and ordering screens.', kind: 'product' },
+      ],
       architecture: [
         'Shared core: epos_client_lib + epos_client_models (business logic, gRPC clients, data models)',
         'WPF apps: epos_client_windows (POS terminal), epos_customer_display (second screen), epos_core_manager, epos_warehouse_windows, epos_topup',
@@ -490,6 +610,20 @@ export const PROJECTS: Project[] = [
     caseStudy: {
       problem: 'Retail loyalty is far more than a points balance. Programs need tiered earning rules (earn 2x on fresh produce for Gold members, flat overrides for promo items), redemption caps per program, blacklisted products that never earn points, blacklisted payment methods that never trigger them, store credit with minimum-balance floors, and on-account credit for corporate customers — and every one of these rules must be enforceable at checkout speed, offline, across multiple terminals hitting the same account.',
       approach: 'Modeled membership programs as first-class domain entities synced to every terminal, with tiers carrying their own earning rules. Points, store credit, and on-account are all payment strategies — so the same void/refund/rounding machinery that handles cash handles loyalty instruments for free. Balances use a dual-field model (DB balance minus session deductions) so concurrent offline transactions cannot overdraw an account.',
+      ownership: ['Modeled tiered earning and redemption rules', 'Integrated loyalty instruments into payment strategy workflows', 'Designed offline-safe balance deductions and refund compensation'],
+      constraints: ['Offline terminals cannot rely on a live balance check', 'Refunds must restore points or credit exactly once', 'Program exclusions must be configurable without catalog changes'],
+      tradeoffs: [
+        { decision: 'Treat loyalty instruments as payments', benefit: 'Existing settlement, void, and refund paths are reused', cost: 'Payment records carry more loyalty-specific metadata' },
+        { decision: 'Track database balance minus session deductions', benefit: 'Prevents local overspend without a network round trip', cost: 'Reconciliation must merge session deductions carefully' },
+      ],
+      beforeAfter: [
+        { dimension: 'Loyalty lifecycle', before: 'Earn and redeem as isolated discounts', after: 'Payment-grade apply, void, and refund behavior' },
+        { dimension: 'Offline balance', before: 'Live server check required', after: 'Dual-field local safety model' },
+      ],
+      evidence: [
+        { label: 'Rule inventory', description: 'Four earning-rule types with product and payment exclusions.', kind: 'architecture' },
+        { label: 'Instrument coverage', description: 'Points, store credit, and on-account credit share settlement behavior.', kind: 'product' },
+      ],
       architecture: [
         'Membership programs with configurable PointToCashRatio, MaximumRedeemableAmount / NoLimit redemption caps, and Active/Inactive state — synced to every terminal via a dedicated synced repository',
         'Tier system: BaseEarningRate per tier plus 4 PointRule types (PercentageMarkup, Override, FlatMarkup, AdditionalPointsPerItem) with per-product-variant overrides — Gold members can earn 2x on one SKU while a promo SKU is excluded entirely',
@@ -522,6 +656,20 @@ export const PROJECTS: Project[] = [
     caseStudy: {
       problem: 'Retail promotions are complex: a "Buy 3 Get 1 Free" deal has qualification rules (minimum quantity, specific products, day-of-week, time-of-day) and reward calculations (cheapest item free, flat discount, percentage off). On top of that, marketing needs advanced vouchers — spend $50, get $8 off these 6 SKUs — that arrive from the backend as parameters, not code. The system must stack multiple promotions, respect membership tiers, void vouchers when orders are cancelled, and calculate everything in milliseconds at checkout.',
       approach: 'Implemented a two-stage strategy engine: (1) Qualification — does the cart match the rules? (2) Reward — what discount or free item applies? Advanced vouchers reuse the same mental model but arrive JSON-parameterized from the backend (condition type + params, reward type + params), so the client re-validates every condition against the actual cart before discounting. Cash vouchers, discount vouchers, and advanced vouchers all flow through one apply → void lifecycle with per-SKU redemption line items sent for server-side validation.',
+      ownership: ['Separated qualification and reward strategy families', 'Implemented JSON-parameterized voucher validation', 'Designed priority, stacking, apply, and void behavior'],
+      constraints: ['Rules must evaluate at checkout speed', 'Backend parameters cannot be trusted without cart validation', 'Cancellation must release consumed voucher codes'],
+      tradeoffs: [
+        { decision: 'Two-stage qualification and reward engine', benefit: 'Rules and rewards combine without class explosion', cost: 'Stacking order must be explicit and testable' },
+        { decision: 'Revalidate JSON voucher parameters on the client', benefit: 'Malformed or stale payloads cannot discount blindly', cost: 'Validation logic exists at both client and server boundaries' },
+      ],
+      beforeAfter: [
+        { dimension: 'Promotion design', before: 'Offer-specific condition and discount code', after: 'Composable qualification and reward strategies' },
+        { dimension: 'Voucher configuration', before: 'Client release required for new combinations', after: 'Validated backend parameters drive supported rules' },
+      ],
+      evidence: [
+        { label: 'Reward inventory', description: 'Fourteen documented reward strategies.', kind: 'architecture' },
+        { label: 'Voucher lifecycle', description: 'Apply, validate, prioritize, and void states with SKU-level details.', kind: 'product' },
+      ],
       architecture: [
         'PromotionContext: holds cart items, customer membership tier, store settings, and current date/time',
         'PromotionQualificationStrategy: evaluates ProductRequiredQualificationStrategy against cart contents',
@@ -551,14 +699,19 @@ export const PROJECTS: Project[] = [
   },
 ]
 
+export const PROJECTS: Project[] = PROJECTS_SOURCE.map((project) => project.caseStudy
+  ? { ...project, caseStudy: { ...project.caseStudy, metrics: project.caseStudy.metrics.filter(isPublishableMetric) } }
+  : project)
+
 // ─── Testimonials ───────────────────────────────────────────────────────────
 
-export const TESTIMONIALS_DATA: Testimonial[] = [
+const TESTIMONIAL_CANDIDATES: Testimonial[] = [
   {
     name: 'David Lim',
     role: 'Engineering Manager',
     company: 'EPOS Singapore',
-    email: 'david.lim@epos.com.sg',
+    email: '',
+    verified: false,
     avatar: 'DL',
     pr: 312,
     reactions: { thumbsUp: 24, heart: 18, rocket: 12 },
@@ -569,7 +722,8 @@ export const TESTIMONIALS_DATA: Testimonial[] = [
     name: 'Rachel Tan',
     role: 'Product Director',
     company: 'EPOS Singapore',
-    email: 'rachel.tan@epos.com.sg',
+    email: '',
+    verified: false,
     avatar: 'RT',
     pr: 198,
     reactions: { thumbsUp: 19, heart: 14, rocket: 8 },
@@ -580,7 +734,8 @@ export const TESTIMONIALS_DATA: Testimonial[] = [
     name: 'Kevin Wong',
     role: 'Senior Backend Engineer',
     company: 'EPOS Singapore',
-    email: 'kevin.wong@epos.com.sg',
+    email: '',
+    verified: false,
     avatar: 'KW',
     pr: 267,
     reactions: { thumbsUp: 16, heart: 9, rocket: 11 },
@@ -591,7 +746,8 @@ export const TESTIMONIALS_DATA: Testimonial[] = [
     name: 'Michelle Nguyen',
     role: 'QA Lead',
     company: 'EPOS Singapore',
-    email: 'michelle.nguyen@epos.com.sg',
+    email: '',
+    verified: false,
     avatar: 'MN',
     pr: 145,
     reactions: { thumbsUp: 21, heart: 16, rocket: 6 },
@@ -602,7 +758,8 @@ export const TESTIMONIALS_DATA: Testimonial[] = [
     name: 'Alan Chia',
     role: 'Operations Director',
     company: 'EPOS Singapore',
-    email: 'alan.chia@epos.com.sg',
+    email: '',
+    verified: false,
     avatar: 'AC',
     pr: 89,
     reactions: { thumbsUp: 13, heart: 7, rocket: 9 },
@@ -610,3 +767,6 @@ export const TESTIMONIALS_DATA: Testimonial[] = [
     quote: "Our retail clients depend on POS systems that never go down. The offline-first architecture with auto-sync saved us during multiple real-world network outages — stores kept selling while competitors couldn't process a single transaction.",
   },
 ]
+
+export const TESTIMONIALS_DATA = TESTIMONIAL_CANDIDATES.filter((testimonial) => testimonial.verified)
+export const PUBLISHED_TESTIMONIALS = TESTIMONIALS_DATA

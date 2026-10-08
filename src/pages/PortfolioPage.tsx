@@ -1,6 +1,13 @@
 import { useRef, useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
 import { Link as RouterLink, Outlet } from 'react-router-dom'
-import { motion, useMotionValue, useSpring, useInView, useScroll, useTransform, animate, AnimatePresence } from 'framer-motion'
+import { motion, useMotionValue, useSpring, useInView, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import NumberFlow from '@number-flow/react'
+import Lenis from 'lenis'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useGSAP } from '@gsap/react'
+
+gsap.registerPlugin(ScrollTrigger)
 import { Mail, Globe, Link, Send, Copy, Check, ArrowUp, ChevronRight, ChevronDown, File, Folder, Star, GitBranch, X, ExternalLink } from 'lucide-react'
 import GrafanaDashboard from '../components/GrafanaDashboard'
 import ProjectVisual from '../components/ProjectVisual'
@@ -16,10 +23,12 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useToast } from '../contexts/ToastContext'
 import { useEasterEggs, CrtOverlay } from '../hooks/useEasterEggs'
 import { AchievementDrawer } from '../hooks/useAchievements'
-import { CAREER_CHAPTERS, PROJECTS, TESTIMONIALS_DATA, SKILLS_GRAPH, SKILL_CAT_COLORS, SKILL_CAT_LABELS, SOCIAL_LINKS, CONTACT_EMAIL, HERO_NAME, HERO_ROLE, CONTENT_FLAGS } from './portfolio/content'
+import { CAREER_CHAPTERS, PROJECTS, PUBLISHED_TESTIMONIALS, SOCIAL_LINKS, CONTACT_EMAIL, HERO_NAME, HERO_ROLE, CONTENT_FLAGS } from './portfolio/content'
+import { PORTFOLIO_PROFILE } from './portfolio/profile'
+import { PORTFOLIO_SECTIONS, SECTION_BY_ID, SECTION_BY_INDEX, visiblePortfolioSections } from './portfolio/sections'
+import type { PortfolioSection, PortfolioSectionId } from './portfolio/sections'
 import SectionHeader from './portfolio/SectionHeader'
 import MarqueeBand from './portfolio/MarqueeBand'
-import type { SkillCategory, SkillNode } from './portfolio/content'
 import { usePortfolioSEO } from './portfolio/seo'
 import { downloadResume } from './portfolio/resume'
 import { useI18n } from './portfolio/i18n'
@@ -31,6 +40,15 @@ const TenderWall = lazy(() => import('./portfolio/TenderWall'))
 const LoyaltyVault = lazy(() => import('./portfolio/LoyaltyVault'))
 const SkillCheckout = lazy(() => import('./portfolio/SkillCheckout'))
 const SelectedWorks = lazy(() => import('./portfolio/SelectedWorks'))
+const AndroidFleet = lazy(() => import('./portfolio/AndroidFleet'))
+const KioskExperience = lazy(() => import('./portfolio/KioskExperience'))
+const StockTakePulse = lazy(() => import('./portfolio/StockTakePulse'))
+const KitchenDisplayStream = lazy(() => import('./portfolio/KitchenDisplayStream'))
+const EcosystemFlow = lazy(() => import('./portfolio/EcosystemFlow'))
+const TransactionSimulator = lazy(() => import('./portfolio/TransactionSimulator'))
+const SkillsConstellation = lazy(() => import('./portfolio/SkillsConstellation'))
+const PromotionVisualizer = lazy(() => import('./portfolio/PromotionVisualizer'))
+const ReliabilityLab = lazy(() => import('./portfolio/ReliabilityLab'))
 
 // Static gradient hero backdrop — zero-JS, GPU-friendly, keeps scrolling buttery
 function ParticleFallback() {
@@ -42,7 +60,6 @@ function SectionFallback() {
 }
 
 // ─── Data ───────────────────────────────────────────────────────────────────
-const SECTIONS = ['Hero', 'Skill Checkout', 'About', 'Chronicle', 'Money Layer', 'Loyalty Vault', 'Metrics', 'Activity', 'Skills', 'Works', 'Explorer', 'The Lab', 'Reviews', 'Kanban', 'Contact', 'Footer']
 
 // Per-section accent colors — shared by headers, ambient glows and navigation
 const SECTION_ACCENTS: Record<string, string> = {
@@ -50,6 +67,14 @@ const SECTION_ACCENTS: Record<string, string> = {
   Chronicle: '#f59e0b',
   'Money Layer': '#10b981',
   'Loyalty Vault': '#14b8a6',
+  'Device Fleet': '#f97316',
+  Kiosk: '#06b6d4',
+  'Stock Take': '#84cc16',
+  'Kitchen Display': '#ef4444',
+  'Ecosystem': '#a855f7',  // purple — the architecture overview
+  'Sale Pipeline': '#f43f5e',
+  'Promo Engine': '#f59e0b',    // amber — promotions
+  'Offline Sync': '#06b6d4',    // cyan — sync
   Metrics: '#3b82f6',
   Activity: '#22c55e',
   Skills: '#8b5cf6',
@@ -77,25 +102,41 @@ const SECTION_GLOWS = [
   'radial-gradient(circle at 50% 40%, rgba(16,185,129,0.16), transparent 52%)',
   // 5 Loyalty Vault — teal vault glow
   'radial-gradient(circle at 30% 55%, rgba(20,184,166,0.15), transparent 52%), radial-gradient(circle at 72% 30%, rgba(59,130,246,0.10), transparent 50%)',
-  // 6 Metrics — blue dashboard glow
+  // 6 Device Fleet — orange device glow
+  'radial-gradient(circle at 45% 42%, rgba(249,115,22,0.14), transparent 52%), radial-gradient(circle at 70% 58%, rgba(59,130,246,0.10), transparent 48%)',
+  // 7 Kiosk — cyan kiosk glow
+  'radial-gradient(circle at 50% 45%, rgba(6,182,212,0.15), transparent 52%), radial-gradient(circle at 30% 60%, rgba(16,185,129,0.08), transparent 50%)',
+  // 8 Stock Take — lime inventory glow
+  'radial-gradient(circle at 38% 48%, rgba(132,204,22,0.14), transparent 52%), radial-gradient(circle at 72% 42%, rgba(245,158,11,0.09), transparent 48%)',
+  // 9 Kitchen Display — red kitchen glow
+  'radial-gradient(circle at 55% 40%, rgba(239,68,68,0.13), transparent 52%), radial-gradient(circle at 28% 65%, rgba(249,115,22,0.10), transparent 48%)',
+  // 10 Ecosystem — purple architecture glow
+  'radial-gradient(circle at 50% 45%, rgba(168,85,247,0.15), transparent 52%), radial-gradient(circle at 30% 55%, rgba(59,130,246,0.10), transparent 48%)',
+  // 11 Sale Pipeline — rose pipeline glow
+  'radial-gradient(circle at 50% 42%, rgba(244,63,94,0.14), transparent 52%), radial-gradient(circle at 30% 58%, rgba(16,185,129,0.10), transparent 48%)',
+  // 12 Promo Engine — amber promotion glow
+  'radial-gradient(circle at 48% 44%, rgba(245,158,11,0.15), transparent 52%), radial-gradient(circle at 68% 56%, rgba(234,179,8,0.10), transparent 48%)',
+  // 13 Offline Sync — cyan sync glow
+  'radial-gradient(circle at 52% 46%, rgba(6,182,212,0.15), transparent 52%), radial-gradient(circle at 32% 54%, rgba(16,185,129,0.10), transparent 48%)',
+  // 14 Metrics — blue dashboard glow
   'radial-gradient(circle at 40% 50%, rgba(59,130,246,0.15), transparent 50%), radial-gradient(circle at 75% 40%, rgba(16,185,129,0.10), transparent 48%)',
-  // 7 Activity — green commit glow
+  // 15 Activity — green commit glow
   'radial-gradient(circle at 35% 45%, rgba(34,197,94,0.14), transparent 52%), radial-gradient(circle at 70% 55%, rgba(16,185,129,0.10), transparent 48%)',
-  // 8 Skills — violet galaxy glow
+  // 16 Skills — violet galaxy glow
   'radial-gradient(circle at 30% 40%, rgba(139,92,246,0.15), transparent 50%), radial-gradient(circle at 70% 60%, rgba(16,185,129,0.11), transparent 50%)',
-  // 9 Works — golden editorial glow
+  // 17 Works — golden editorial glow
   'radial-gradient(circle at 40% 45%, rgba(234,179,8,0.12), transparent 52%), radial-gradient(circle at 70% 40%, rgba(245,158,11,0.08), transparent 48%)',
-  // 10 Explorer — sky-blue explorer glow
+  // 18 Explorer — sky-blue explorer glow
   'radial-gradient(circle at 22% 50%, rgba(14,165,233,0.15), transparent 48%), radial-gradient(circle at 78% 55%, rgba(59,130,246,0.13), transparent 48%)',
-  // 11 The Lab — amber experiment glow
+  // 19 The Lab — amber experiment glow
   'radial-gradient(circle at 45% 40%, rgba(249,115,22,0.13), transparent 52%), radial-gradient(circle at 75% 60%, rgba(245,158,11,0.10), transparent 48%)',
-  // 12 Reviews — rose review glow
+  // 20 Reviews — rose review glow
   'radial-gradient(circle at 50% 50%, rgba(244,63,94,0.12), transparent 55%)',
-  // 13 Kanban — cyan board glow
+  // 21 Kanban — cyan board glow
   'radial-gradient(circle at 35% 45%, rgba(6,182,212,0.14), transparent 50%), radial-gradient(circle at 70% 55%, rgba(245,158,11,0.11), transparent 50%)',
-  // 14 Contact — violet glow at bottom
+  // 22 Contact — violet glow at bottom
   'radial-gradient(circle at 50% 88%, rgba(139,92,246,0.20), transparent 55%)',
-  // 15 Footer — soft emerald at bottom
+  // 23 Footer — soft emerald at bottom
   'radial-gradient(circle at 50% 92%, rgba(16,185,129,0.12), transparent 55%)',
 ]
 
@@ -193,10 +234,10 @@ function PackageJsonCard() {
     <><span className="text-slate-400">{'{'}</span></>,
     <><span className="text-blue-300">{'  "name"'}</span><span className="text-slate-400">: </span><span className="text-emerald-300">"leo-phucvu"</span><span className="text-slate-400">,</span></>,
     <><span className="text-blue-300">{'  "version"'}</span><span className="text-slate-400">: </span><span className="text-emerald-300">"5.0.0"</span><span className="text-slate-400">,</span></>,
-    <><span className="text-blue-300">{'  "description"'}</span><span className="text-slate-400">: </span><span className="text-emerald-300">"Senior Full-Stack Developer"</span><span className="text-slate-400">,</span></>,
-    <><span className="text-blue-300">{'  "location"'}</span><span className="text-slate-400">: </span><span className="text-emerald-300">"Singapore 🇸🇬"</span><span className="text-slate-400">,</span></>,
-    <><span className="text-blue-300">{'  "experience"'}</span><span className="text-slate-400">: </span><span className="text-emerald-300">"5+ years"</span><span className="text-slate-400">,</span></>,
-    <><span className="text-blue-300">{'  "main"'}</span><span className="text-slate-400">: [</span><span className="text-emerald-300">"React"</span><span className="text-slate-400">, </span><span className="text-emerald-300">"TypeScript"</span><span className="text-slate-400">, </span><span className="text-emerald-300">"Node.js"</span><span className="text-slate-400">],</span></>,
+    <><span className="text-blue-300">{'  "description"'}</span><span className="text-slate-400">: </span><span className="text-emerald-300">"{PORTFOLIO_PROFILE.role}"</span><span className="text-slate-400">,</span></>,
+    <><span className="text-blue-300">{'  "location"'}</span><span className="text-slate-400">: </span><span className="text-emerald-300">"{PORTFOLIO_PROFILE.location} 🇸🇬"</span><span className="text-slate-400">,</span></>,
+    <><span className="text-blue-300">{'  "experience"'}</span><span className="text-slate-400">: </span><span className="text-emerald-300">"{PORTFOLIO_PROFILE.experience}"</span><span className="text-slate-400">,</span></>,
+    <><span className="text-blue-300">{'  "main"'}</span><span className="text-slate-400">: [</span><span className="text-emerald-300">"C#"</span><span className="text-slate-400">, </span><span className="text-emerald-300">".NET 8"</span><span className="text-slate-400">, </span><span className="text-emerald-300">"gRPC"</span><span className="text-slate-400">],</span></>,
     <><span className="text-blue-300">{'  "available"'}</span><span className="text-slate-400">: </span><span className="text-amber-300">true</span></>,
     <><span className="text-slate-400">{'}'}</span></>,
   ]
@@ -266,8 +307,8 @@ function HeroStatStrip() {
   const stats = [
     { value: '5+', label: 'Years Experience', accent: '#10b981' },
     { value: '30+', label: 'POS Modules', accent: '#3b82f6' },
-    { value: '$200K+', label: 'Transactions', accent: '#8b5cf6' },
-    { value: '50K+', label: 'Daily Users', accent: '#f59e0b' },
+    { value: '20+', label: 'Payment Methods', accent: '#8b5cf6' },
+    { value: '5', label: 'Device Types', accent: '#f59e0b' },
   ]
   return (
     <motion.div
@@ -379,14 +420,14 @@ function NetworkGraph() {
 // ─── NAV DOTS + WAVE DIVIDER ──────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
 
-function NavDots({ active, onNav }: { active: number; onNav: (i: number) => void }) {
+function NavDots({ active, onNav, sections }: { active: PortfolioSectionId; onNav: (id: PortfolioSectionId) => void; sections: readonly PortfolioSection[] }) {
   return (
     <nav aria-label="Section navigation" className="fixed right-6 top-1/2 -translate-y-1/2 z-50 hidden md:flex flex-col items-end gap-2">
-      {SECTIONS.map((s, i) => {
-        const isActive = active === i
-        const accent = SECTION_ACCENTS[s]
+      {sections.map((section) => {
+        const isActive = active === section.id
+        const accent = SECTION_ACCENTS[section.label]
         return (
-          <button key={s} onClick={() => onNav(i)} className="group relative flex items-center gap-2.5">
+          <button key={section.id} onClick={() => onNav(section.id)} className="group relative flex items-center gap-2.5">
             <span
               className={`font-mono text-[10px] tracking-wider whitespace-nowrap px-2 py-0.5 rounded-md border transition-all duration-300 ${
                 isActive
@@ -399,7 +440,7 @@ function NavDots({ active, onNav }: { active: number; onNav: (i: number) => void
                   : undefined
               }
             >
-              {String(i).padStart(2, '0')} · {s}
+              {String(section.index).padStart(2, '0')} · {section.label}
             </span>
             <span
               className={`block rounded-full transition-all duration-300 ${
@@ -423,11 +464,11 @@ function NavDots({ active, onNav }: { active: number; onNav: (i: number) => void
 // Mobile section dock — thumb-reach wayfinding for small screens (desktop uses
 // NavDots). Horizontally scrollable chips highlight the active section and
 // auto-center it; the ⌘K button opens the command palette (only mobile access).
-function MobileSectionDock({ active, onNav, ready }: { active: number; onNav: (i: number) => void; ready: boolean }) {
+function MobileSectionDock({ active, onNav, ready, sections }: { active: PortfolioSectionId; onNav: (id: PortfolioSectionId) => void; ready: boolean; sections: readonly PortfolioSection[] }) {
   const listRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const list = listRef.current
-    const chip = list?.querySelector<HTMLElement>(`[data-dock-idx="${active}"]`)
+    const chip = list?.querySelector<HTMLElement>(`[data-dock-id="${active}"]`)
     if (!list || !chip) return
     list.scrollTo({ left: chip.offsetLeft - (list.clientWidth - chip.clientWidth) / 2, behavior: 'smooth' })
   }, [active])
@@ -450,20 +491,20 @@ function MobileSectionDock({ active, onNav, ready }: { active: number; onNav: (i
         </button>
         <div className="w-px h-5 bg-slate-700/60 shrink-0" />
         <div ref={listRef} className="no-scrollbar flex items-center gap-1 overflow-x-auto">
-          {SECTIONS.map((s, i) => {
-            const isActive = active === i
-            const accent = SECTION_ACCENTS[s]
+          {sections.map((section) => {
+            const isActive = active === section.id
+            const accent = SECTION_ACCENTS[section.label]
             return (
               <button
-                key={s}
-                data-dock-idx={i}
-                onClick={() => onNav(i)}
+                key={section.id}
+                data-dock-id={section.id}
+                onClick={() => onNav(section.id)}
                 className={`shrink-0 h-9 px-3 rounded-full font-mono text-[10px] tracking-wider whitespace-nowrap transition-colors duration-300 ${
                   isActive ? 'text-slate-100 bg-white/[0.07]' : 'text-slate-500 hover:text-slate-300'
                 }`}
                 style={isActive && accent ? { color: accent, background: `${accent}1a` } : undefined}
               >
-                {String(i).padStart(2, '0')} {s}
+                {String(section.index).padStart(2, '0')} {section.label}
               </button>
             )
           })}
@@ -475,8 +516,8 @@ function MobileSectionDock({ active, onNav, ready }: { active: number; onNav: (i
 
 function WaveDivider({ flip = false }: { flip?: boolean }) {
   return (
-    <div className={`relative w-full leading-[0] ${flip ? 'rotate-180' : ''}`} aria-hidden>
-      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full h-12 md:h-16">
+    <div className={`relative w-full leading-[0] overflow-hidden ${flip ? 'rotate-180' : ''}`} aria-hidden>
+      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-[104%] -ml-[2%] h-12 md:h-16" style={{ animation: 'wave-sway 18s ease-in-out infinite', willChange: 'transform' }}>
         <path d="M0,40 C240,90 480,0 720,40 C960,80 1200,10 1440,40 L1440,80 L0,80 Z" fill="rgba(16,185,129,0.05)" />
         <path d="M0,50 C360,10 720,90 1080,50 C1260,30 1350,60 1440,50 L1440,80 L0,80 Z" fill="rgba(59,130,246,0.04)" />
       </svg>
@@ -645,195 +686,6 @@ function TerminalBoot({ onComplete }: { onComplete: () => void }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ─── INTERACTIVE SKILLS GRAPH ─────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════
-
-function SkillsGraph() {
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null)
-
-  // Map id → category for quick lookups
-  const nodeCat = useMemo(() => {
-    const m: Record<string, SkillCategory> = {}
-    SKILLS_GRAPH.nodes.forEach((n) => { m[n.id] = n.category })
-    return m
-  }, [])
-
-  // Pre-computed force-layout-style positions (deterministic golden-angle spiral per cluster)
-  const positions = useMemo(() => {
-    const clusters: Record<SkillCategory, { cx: number; cy: number }> = {
-      frontend: { cx: 205, cy: 180 }, // top-left
-      backend: { cx: 595, cy: 180 },  // top-right
-      devops: { cx: 205, cy: 430 },   // bottom-left
-      design: { cx: 595, cy: 430 },   // bottom-right
-    }
-    const byCat: Record<string, SkillNode[]> = {}
-    SKILLS_GRAPH.nodes.forEach((n) => { (byCat[n.category] ||= []).push(n) })
-
-    const golden = Math.PI * (3 - Math.sqrt(5))
-    const pos: Record<string, { x: number; y: number }> = {}
-    ;(Object.keys(byCat) as SkillCategory[]).forEach((cat) => {
-      const { cx, cy } = clusters[cat]
-      byCat[cat].forEach((n, i) => {
-        // spiral outward from cluster center; radius grows with sqrt to keep even spacing
-        const r = i === 0 ? 0 : Math.sqrt(i) * 52 + 14
-        const a = i * golden
-        pos[n.id] = { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }
-      })
-    })
-    return pos
-  }, [])
-
-  // Adjacency map for hover highlighting
-  const adjacency = useMemo(() => {
-    const m: Record<string, Set<string>> = {}
-    SKILLS_GRAPH.edges.forEach(([a, b]) => {
-      (m[a] ||= new Set()).add(b)
-      ;(m[b] ||= new Set()).add(a)
-    })
-    return m
-  }, [])
-
-  const anyHover = hoveredNode !== null
-  const isNodeActive = (id: string) => !anyHover || id === hoveredNode || !!adjacency[hoveredNode!]?.has(id)
-
-  const edgePath = (a: { x: number; y: number }, b: { x: number; y: number }) => {
-    const mx = (a.x + b.x) / 2
-    const my = (a.y + b.y) / 2
-    const dx = b.x - a.x
-    const dy = b.y - a.y
-    const norm = Math.hypot(dx, dy) || 1
-    const off = 26
-    const cx = mx - (dy / norm) * off
-    const cy = my + (dx / norm) * off
-    return `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.8, ease: 'easeOut' }}
-      className="relative w-full"
-    >
-      <svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet" className="w-full h-auto">
-        <defs>
-          {(Object.keys(SKILL_CAT_COLORS) as SkillCategory[]).map((cat) => (
-            <radialGradient id={`skill-grad-${cat}`} key={cat} cx="38%" cy="35%" r="70%">
-              <stop offset="0%" stopColor={SKILL_CAT_COLORS[cat]} stopOpacity="0.95" />
-              <stop offset="60%" stopColor={SKILL_CAT_COLORS[cat]} stopOpacity="0.55" />
-              <stop offset="100%" stopColor={SKILL_CAT_COLORS[cat]} stopOpacity="0.18" />
-            </radialGradient>
-          ))}
-        </defs>
-
-        {/* Edges */}
-        {SKILLS_GRAPH.edges.map(([a, b], i) => {
-          const pa = positions[a]
-          const pb = positions[b]
-          if (!pa || !pb) return null
-          const active = anyHover && (a === hoveredNode || b === hoveredNode)
-          const dimmed = anyHover && !active
-          const color = active ? SKILL_CAT_COLORS[nodeCat[a]] : '#64748b'
-          return (
-            <path
-              key={`${a}-${b}-${i}`}
-              d={edgePath(pa, pb)}
-              fill="none"
-              stroke={color}
-              strokeWidth={active ? 2.2 : 1}
-              strokeDasharray="4 6"
-              strokeLinecap="round"
-              style={{
-                opacity: dimmed ? 0.04 : active ? 0.9 : 0.15,
-                transition: 'opacity 0.3s ease, stroke 0.3s ease',
-                animation: 'edge-flow 1s linear infinite',
-              }}
-            />
-          )
-        })}
-
-        {/* Nodes */}
-        {SKILLS_GRAPH.nodes.map((n, i) => {
-          const p = positions[n.id]
-          if (!p) return null
-          const r = 12 + n.level * 4
-          const color = SKILL_CAT_COLORS[n.category]
-          const isHover = hoveredNode === n.id
-          const active = isNodeActive(n.id)
-          const dimmed = anyHover && !active
-          return (
-            <g
-              key={n.id}
-              onMouseEnter={() => setHoveredNode(n.id)}
-              onMouseLeave={() => setHoveredNode(null)}
-              style={{ cursor: 'pointer', transition: 'opacity 0.3s ease', opacity: dimmed ? 0.28 : 1 }}
-            >
-              {/* pulsing glow halo */}
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r={r + 7}
-                fill={color}
-                style={{
-                  opacity: isHover ? 0.4 : 0.16,
-                  animation: `node-pulse ${3 + (i % 5) * 0.5}s ease-in-out ${(i * 0.17).toFixed(2)}s infinite`,
-                  transition: 'opacity 0.3s ease',
-                }}
-              />
-              {/* main node */}
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r={r}
-                fill={`url(#skill-grad-${n.category})`}
-                stroke={color}
-                strokeWidth={isHover ? 2.6 : 1.3}
-                style={{
-                  transform: isHover ? 'scale(1.14)' : 'scale(1)',
-                  transformBox: 'fill-box',
-                  transformOrigin: 'center',
-                  transition: 'transform 0.3s ease, stroke-width 0.3s ease, filter 0.3s ease',
-                  filter: active && anyHover ? `drop-shadow(0 0 8px ${color})` : 'none',
-                }}
-              />
-              {/* label */}
-              <text
-                x={p.x}
-                y={p.y + r + 15}
-                textAnchor="middle"
-                fill={dimmed ? '#475569' : '#e2e8f0'}
-                style={{
-                  fontSize: '12px',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  pointerEvents: 'none',
-                  transition: 'fill 0.3s ease',
-                }}
-              >
-                {n.label}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
-
-      {/* Category legend */}
-      <div className="flex flex-wrap justify-center gap-6 mt-6">
-        {(Object.keys(SKILL_CAT_LABELS) as SkillCategory[]).map((cat) => (
-          <div key={cat} className="flex items-center gap-2">
-            <span
-              className="w-3 h-3 rounded-full"
-              style={{ background: SKILL_CAT_COLORS[cat], boxShadow: `0 0 8px ${SKILL_CAT_COLORS[cat]}` }}
-            />
-            <span className="text-sm text-slate-400 font-mono">{SKILL_CAT_LABELS[cat]}</span>
-          </div>
-        ))}
-      </div>
-    </motion.div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // ─── NEOFETCH ABOUT ─────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -852,21 +704,17 @@ const NEOFETCH_ASCII = [
 ]
 
 const NEOFETCH_INFO: { key: string; value: string }[] = [
-  { key: '', value: 'leo@portfolio.dev' },
+  { key: '', value: 'leo@epos-systems' },
   { key: '', value: '─────────────────────────' },
-  { key: 'OS', value: 'Full-Stack Developer v5.0' },
+  { key: 'Role', value: PORTFOLIO_PROFILE.role },
   { key: 'Host', value: 'EPOS Singapore 🇸🇬' },
-  { key: 'Kernel', value: 'React + TypeScript + Node.js' },
-  { key: 'Uptime', value: '5 years, 3 months' },
-  { key: 'Packages', value: '40+ projects shipped' },
-  { key: 'Shell', value: 'VS Code + zsh' },
-  { key: 'Resolution', value: 'Pixel-perfect' },
-  { key: 'DE', value: 'Dark Mode Enthusiast' },
-  { key: 'Terminal', value: 'iTerm2 + tmux' },
-  { key: 'CPU', value: 'Passion × Coffee ☕' },
-  { key: 'GPU', value: 'Three.js + WebGL + GSAP' },
-  { key: 'Memory', value: '25+ happy clients' },
-  { key: 'Disk', value: 'Always learning (∞)' },
+  { key: 'Core', value: 'C# + .NET 8 + gRPC' },
+  { key: 'Uptime', value: PORTFOLIO_PROFILE.experience },
+  { key: 'Modules', value: '30+ POS modules' },
+  { key: 'Clients', value: 'Windows + Android + iOS' },
+  { key: 'Data', value: 'SQLite + PostgreSQL' },
+  { key: 'Focus', value: 'Payments + offline resilience' },
+  { key: 'Status', value: PORTFOLIO_PROFILE.availability },
 ]
 
 const PALETTE_COLORS = ['#1e1e2e', '#f38ba8', '#a6e3a1', '#f9e2af', '#89b4fa', '#cba6f7', '#94e2d5', '#cdd6f4']
@@ -1010,19 +858,78 @@ function ASCIIFooter() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ─── SECTION SNAPSHOT — html2canvas screenshot button ─────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+function SectionSnapshot({ sectionRef, title }: { sectionRef: React.RefObject<HTMLElement | null>; title: string }) {
+  const [capturing, setCapturing] = useState(false)
+
+  const capture = async () => {
+    if (!sectionRef.current || capturing) return
+    setCapturing(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(sectionRef.current, {
+        backgroundColor: '#0a0a0f',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      })
+      // Add watermark
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.font = '14px monospace'
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.5)'
+        ctx.fillText('EPOS V5 Portfolio · leo.phucvu', 20, canvas.height - 20)
+      }
+      // Download
+      const link = document.createElement('a')
+      link.download = `${title.toLowerCase().replace(/\s+/g, '-')}-snapshot.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } catch { /* silent */ }
+    setCapturing(false)
+  }
+
+  return (
+    <motion.button
+      onClick={capture}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="absolute top-4 right-4 z-10 px-3 py-1.5 rounded-lg border border-slate-700/50 bg-slate-900/80 backdrop-blur-sm font-mono text-[10px] text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 transition-colors flex items-center gap-1.5 opacity-0 group-hover:opacity-100"
+      title={`Screenshot ${title}`}
+    >
+      {capturing ? '⏳ Capturing...' : '📸 Share'}
+    </motion.button>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ─── MAIN PORTFOLIO PAGE ──────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function PortfolioPage() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [activeSection, setActiveSection] = useState(0)
+  const lenisRef = useRef<Lenis | null>(null)
+  const [activeSection, setActiveSection] = useState<PortfolioSectionId>('hero')
   const [copied, setCopied] = useState(false)
   const [ready, setReady] = useState(false)
   const [scrambleKey, setScrambleKey] = useState(0)
 
-  // Professional mode: hides playful chrome
+  // Refs for SectionSnapshot (key interactive sections)
+  const skillCheckoutRef = useRef<HTMLElement>(null)
+  const moneyLayerRef = useRef<HTMLElement>(null)
+  const loyaltyVaultRef = useRef<HTMLElement>(null)
+  const ecosystemRef = useRef<HTMLElement>(null)
+  const salePipelineRef = useRef<HTMLElement>(null)
+  const promoEngineRef = useRef<HTMLElement>(null)
+
+  // Recruiter mode is the concise default; the full engineering lab is opt-in.
   const [professionalMode, setProfessionalMode] = useState(() => {
-    try { return localStorage.getItem('pf-professional-mode') === 'true' } catch { return false }
+    try {
+      const stored = localStorage.getItem('pf-professional-mode')
+      return stored === null ? true : stored === 'true'
+    } catch { return true }
   })
   const toggleProfessionalMode = useCallback(() => {
     setProfessionalMode(prev => {
@@ -1071,56 +978,94 @@ export default function PortfolioPage() {
     setTheme(themes[(idx + 1) % themes.length])
   }, [theme, setTheme])
 
+  const visibleSections = useMemo(() => visiblePortfolioSections(professionalMode), [professionalMode])
   const { scrollYProgress } = useScroll()
   const progressScale = useSpring(scrollYProgress, { stiffness: 120, damping: 30 })
 
-  const scrollToSection = (i: number) => {
-    const el = containerRef.current?.querySelector(`[data-section-idx="${i}"]`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  // Footer watermark parallax — the giant outline drifts up as the footer scrolls in
+  const footerRef = useRef<HTMLElement>(null)
+  const { scrollYProgress: footerProgress } = useScroll({ target: footerRef, offset: ['start end', 'end end'] })
+  const watermarkY = useTransform(footerProgress, [0, 1], [70, -30])
+
+  const scrollToSection = useCallback((id: PortfolioSectionId) => {
+    const section = SECTION_BY_ID.get(id)
+    const el = containerRef.current?.querySelector<HTMLElement>(`[data-section-id="${id}"]`)
+      ?? (section ? containerRef.current?.querySelector<HTMLElement>(`[data-section-idx="${section.index}"]`) : null)
+    if (!el) return
+    if (lenisRef.current) lenisRef.current.scrollTo(el, { duration: 1.4 })
+    else el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
+  useEffect(() => {
+    if (professionalMode && !visibleSections.some((section) => section.id === activeSection)) {
+      setActiveSection('hero')
+      window.requestAnimationFrame(() => scrollToSection('hero'))
+    }
+  }, [activeSection, professionalMode, scrollToSection, visibleSections])
+
+  // Smooth inertial scrolling (Lenis) — same feel as the Cinematic page.
+  // Starts once the boot sequence finishes; skipped for reduced-motion users.
+  useEffect(() => {
+    if (!ready) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    })
+    lenisRef.current = lenis
+
+    let rafId = 0
+    const raf = (time: number) => {
+      lenis.raf(time)
+      rafId = requestAnimationFrame(raf)
+    }
+    rafId = requestAnimationFrame(raf)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      lenis.destroy()
+      lenisRef.current = null
+    }
+  }, [ready])
 
   // Section observer
   useEffect(() => {
     const sectionEls = containerRef.current?.querySelectorAll('[data-section]')
     if (!sectionEls) return
     const obs = new IntersectionObserver((entries) => {
-      entries.forEach((e) => { if (e.isIntersecting) setActiveSection(Number(e.target.getAttribute('data-section-idx'))) })
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+        const section = SECTION_BY_INDEX.get(Number(entry.target.getAttribute('data-section-idx')))
+        if (section) setActiveSection(section.id)
+      })
     }, { threshold: 0.3 })
     sectionEls.forEach((el) => obs.observe(el))
     return () => obs.disconnect()
-  }, [])
+  }, [professionalMode])
 
-  // ── Hash deep-linking (#works, #contact...) ──────────────────────────────
-  // Sections get stable ids so links like /portfolio#works land on the section.
-  // The URL hash is kept in sync on scroll via replaceState (no history spam).
-  const SECTION_IDS = useMemo(() => SECTIONS.map(s => s.toLowerCase().replace(/\s+/g, '-')), [])
+  // Assign stable semantic IDs while preserving legacy numeric section indices.
   useEffect(() => {
-    containerRef.current?.querySelectorAll('[data-section]').forEach((el) => {
-      const i = Number(el.getAttribute('data-section-idx'))
-      if (SECTION_IDS[i]) el.id = SECTION_IDS[i]
+    containerRef.current?.querySelectorAll<HTMLElement>('[data-section]').forEach((element) => {
+      const section = SECTION_BY_INDEX.get(Number(element.dataset.sectionIdx))
+      if (!section) return
+      element.id = section.id
+      element.dataset.sectionId = section.id
     })
-  }, [SECTION_IDS])
-  // Jump to the hashed section once the boot sequence finishes
+  }, [professionalMode])
+
   useEffect(() => {
     if (!ready) return
-    const hash = decodeURIComponent(window.location.hash.replace('#', ''))
-    if (!hash) return
-    const idx = SECTION_IDS.indexOf(hash)
-    if (idx >= 0) {
-      containerRef.current?.querySelector(`[data-section-idx="${idx}"]`)
-        ?.scrollIntoView({ behavior: 'auto', block: 'start' })
-    }
-  }, [ready, SECTION_IDS])
-  // Keep the hash in sync while scrolling (only on the plain portfolio route —
-  // never rewrite the URL while the case-study overlay route is active)
+    const hash = decodeURIComponent(window.location.hash.replace('#', '')) as PortfolioSectionId
+    if (SECTION_BY_ID.has(hash)) scrollToSection(hash)
+  }, [ready, scrollToSection])
+
   useEffect(() => {
-    if (!ready) return
-    if (window.location.pathname !== '/portfolio') return
-    const id = SECTION_IDS[activeSection]
-    if (id && window.location.hash !== `#${id}`) {
-      window.history.replaceState(null, '', `/portfolio#${id}`)
+    if (!ready || window.location.pathname !== '/portfolio') return
+    if (window.location.hash !== `#${activeSection}`) {
+      window.history.replaceState(null, '', `/portfolio#${activeSection}`)
     }
-  }, [activeSection, ready, SECTION_IDS])
+  }, [activeSection, ready])
 
   const copyEmail = () => {
     navigator.clipboard.writeText(CONTACT_EMAIL)
@@ -1129,7 +1074,7 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div ref={containerRef} className="portfolio-page relative bg-[#0a0a0f] text-slate-50 overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div ref={containerRef} data-portfolio-mode={professionalMode ? 'recruiter' : 'lab'} className="portfolio-page relative bg-[#0a0a0f] text-slate-50 overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
       <style>{`
         .font-display { font-family: 'Space Grotesk', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
@@ -1176,6 +1121,28 @@ export default function PortfolioPage() {
         .watermark-outline { -webkit-text-stroke: 1.5px rgba(148,163,184,.16); }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        [data-portfolio-mode='recruiter'] [data-section-idx='1'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='4'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='5'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='6'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='7'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='8'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='9'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='10'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='11'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='12'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='13'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='14'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='15'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='16'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='18'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='19'],
+        [data-portfolio-mode='recruiter'] [data-section-idx='21'] { display: none; }
+        ::selection { background: #10b981; color: #0a0a0f; }
+        @keyframes wave-sway { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-2%); } }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+        }
       `}</style>
 
       {/* Global animated background: aurora blobs, dot grid, floating particles */}
@@ -1188,7 +1155,7 @@ export default function PortfolioPage() {
             key={i}
             className="absolute inset-0"
             style={{ background: bg }}
-            animate={{ opacity: activeSection === i ? 1 : 0 }}
+            animate={{ opacity: SECTION_BY_ID.get(activeSection)?.index === i ? 1 : 0 }}
             transition={{ duration: 1.1, ease: 'easeInOut' }}
           />
         ))}
@@ -1209,11 +1176,11 @@ export default function PortfolioPage() {
       {/* Custom cursor — Dennis Snellenberg inspired soft trailing blob */}
       <CustomCursor />
 
-      <NavDots active={activeSection} onNav={scrollToSection} />
-      <MobileSectionDock active={activeSection} onNav={scrollToSection} ready={ready} />
-      <ShortcutsHelp />
+      <NavDots active={activeSection} onNav={scrollToSection} sections={visibleSections} />
+      <MobileSectionDock active={activeSection} onNav={scrollToSection} ready={ready} sections={visibleSections} />
+      {!professionalMode && <ShortcutsHelp />}
       {/* Desktop hint chip — press ? anywhere for shortcuts */}
-      {ready && (
+      {ready && !professionalMode && (
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('leo-help-open'))}
           className="hidden md:flex fixed bottom-5 left-6 z-[60] items-center gap-2 px-3 py-1.5 rounded-full border border-slate-800/80 bg-[#0d1117]/80 backdrop-blur-md font-mono text-[11px] text-slate-500 hover:text-slate-300 hover:border-slate-600/60 transition-colors"
@@ -1225,21 +1192,29 @@ export default function PortfolioPage() {
         </button>
       )}
 
+      <button
+        type="button"
+        onClick={toggleProfessionalMode}
+        className="fixed left-5 top-5 z-[70] rounded-full border border-slate-700/70 bg-[#0d1117]/90 px-3 py-2 font-mono text-[10px] tracking-wider text-slate-300 backdrop-blur-md transition-colors hover:border-emerald-500/60 hover:text-emerald-300"
+        aria-pressed={!professionalMode}
+      >
+        {professionalMode ? 'EXPLORE FULL LAB' : 'RECRUITER VIEW'}
+      </button>
       <ThemeToggle />
-      <CommandPalette onNavigate={scrollToSection} onToggleTheme={cycleTheme} onToggleProfessional={toggleProfessionalMode} />
-      <InteractiveTerminal onNavigate={scrollToSection} professionalMode={professionalMode} />
+      <CommandPalette onNavigate={scrollToSection} onToggleTheme={cycleTheme} onToggleProfessional={toggleProfessionalMode} sections={visibleSections} />
+      {!professionalMode && <InteractiveTerminal onNavigate={scrollToSection} professionalMode={professionalMode} sections={visibleSections} />}
       <AchievementDrawer suppressToasts={professionalMode} />
 
       {/* Back-to-top FAB — appears once you scroll past the hero + checkout */}
       <AnimatePresence>
-        {activeSection >= 2 && (
+        {activeSection !== 'hero' && (
           <motion.button
             key="back-to-top"
             initial={{ opacity: 0, scale: 0.6, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.6, y: 12 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            onClick={() => scrollToSection(0)}
+            onClick={() => scrollToSection('hero')}
             aria-label="Back to top"
             className="fixed bottom-24 right-6 z-[70] w-11 h-11 rounded-full bg-[#0d1117]/90 border border-slate-700/60 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(16,185,129,0.25)] backdrop-blur-md flex items-center justify-center transition-all duration-300"
           >
@@ -1337,8 +1312,8 @@ export default function PortfolioPage() {
           <PackageJsonCard />
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.8 }} className="mt-12 flex items-center justify-center gap-4 flex-wrap">
             <Magnetic strength={0.5} className="inline-block">
-              <button onClick={() => scrollToSection(1)} data-cursor="pointer" className="grad-border relative px-8 py-3 rounded-full text-emerald-400 hover:text-white bg-[#0a0a0f] hover:bg-emerald-500/10 transition-all duration-300 font-mono text-sm tracking-wider">
-                EXPLORE MY WORK
+              <button onClick={() => scrollToSection(professionalMode ? 'works' : 'skill-checkout')} data-cursor="pointer" className="grad-border relative px-8 py-3 rounded-full text-emerald-400 hover:text-white bg-[#0a0a0f] hover:bg-emerald-500/10 transition-all duration-300 font-mono text-sm tracking-wider">
+                {professionalMode ? 'VIEW CASE STUDIES' : 'EXPLORE MY WORK'}
               </button>
             </Magnetic>
             <Magnetic strength={0.5} className="inline-block">
@@ -1355,17 +1330,17 @@ export default function PortfolioPage() {
             transition={{ delay: 2.3, duration: 0.6 }}
             className="mt-10 mx-auto max-w-2xl grid grid-cols-1 md:grid-cols-3 gap-3 text-center"
           >
-            <div className="px-4 py-3 rounded-lg border border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
+            <div className="px-4 py-3 rounded-lg border border-slate-800/60 bg-slate-900/20 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-[0_8px_24px_-12px_rgba(16,185,129,0.45)]">
               <p className="font-mono text-lg font-bold text-emerald-400">30+</p>
               <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">modules shipped</p>
             </div>
-            <div className="px-4 py-3 rounded-lg border border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
-              <p className="font-mono text-lg font-bold text-blue-400">$200K+</p>
-              <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">transactions processed</p>
+            <div className="px-4 py-3 rounded-lg border border-slate-800/60 bg-slate-900/20 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-500/40 hover:shadow-[0_8px_24px_-12px_rgba(59,130,246,0.45)]">
+              <p className="font-mono text-lg font-bold text-blue-400">40+</p>
+              <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">gRPC endpoints</p>
             </div>
-            <div className="px-4 py-3 rounded-lg border border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
-              <p className="font-mono text-lg font-bold text-violet-400">0</p>
-              <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">financial incidents</p>
+            <div className="px-4 py-3 rounded-lg border border-slate-800/60 bg-slate-900/20 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/40 hover:shadow-[0_8px_24px_-12px_rgba(139,92,246,0.45)]">
+              <p className="font-mono text-lg font-bold text-violet-400">22/22</p>
+              <p className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">modules migrated</p>
             </div>
           </motion.div>
           {/* "Now" status — shows you're active and employed */}
@@ -1376,7 +1351,7 @@ export default function PortfolioPage() {
             className="mt-6 font-mono text-xs text-slate-500"
           >
             <span className="text-slate-600">currently:</span>{' '}
-            <span className="text-slate-400">Leading .NET 8 migration at EPOS Singapore</span>
+            <span className="text-slate-400">{PORTFOLIO_PROFILE.currentFocus}</span>
           </motion.div>
         </div>
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
@@ -1384,19 +1359,22 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      <WaveDivider />
+      {!professionalMode && <WaveDivider />}
 
+      {!professionalMode && <>
       {/* ═══ SECTION 2: SKILL CHECKOUT — SIGNATURE DEMO ═══ */}
-      <section data-section data-section-idx="1" aria-label="Skill Checkout" className="relative py-32 px-6 md:px-16">
+      <section ref={skillCheckoutRef} data-section data-section-idx="1" aria-label="Skill Checkout" className="group relative py-32 px-6 md:px-16">
+        <SectionSnapshot sectionRef={skillCheckoutRef} title="Skill Checkout" />
         <div className="max-w-6xl mx-auto">
           <SectionHeader index={1} eyebrow="signature demo" title="The Self-Checkout" subtitle="I build POS systems all day — so scan my skills and run a transaction yourself" accent="#ec4899" />
           <Suspense fallback={<SectionFallback />}>
-            <SkillCheckout onContact={() => scrollToSection(14)} />
+            <SkillCheckout onContact={() => scrollToSection('contact')} />
           </Suspense>
         </div>
       </section>
+      </>}
 
-      <MarqueeBand phrases={['Self-Checkout', 'Skills In Stock', 'GST 9%', 'Zero Incidents', 'Always Shipping']} accent="#ec4899" tilt={-1.5} />
+      {!professionalMode && <MarqueeBand phrases={['Self-Checkout', 'Skills In Stock', 'GST 9%', 'Zero Incidents', 'Always Shipping']} accent="#ec4899" tilt={-1.5} />}
 
       {/* ═══ SECTION 3: ABOUT ═══ */}
       <section data-section data-section-idx="2" aria-label="About" className="about-section relative min-h-screen flex items-center py-32 px-6 md:px-16">
@@ -1408,22 +1386,29 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      <WaveDivider flip />
+      {!professionalMode && <WaveDivider flip />}
 
-      {/* ═══ SECTION 4: CAREER CHRONICLE ═══ */}
+      {/* ═══ SECTION 4: CAREER CHRONICLE — GSAP PINNED SCROLLYTELLING ═══ */}
       <section data-section data-section-idx="3" aria-label="Career Chronicle" className="relative">
         <div className="py-20">
-          <SectionHeader index={2} eyebrow="scroll to explore" title="The Career Chronicle" subtitle="My professional journey, told one scroll at a time" accent="#f59e0b" className="mb-0" />
+          <SectionHeader index={3} eyebrow="scroll to explore" title="The Career Chronicle" subtitle="My professional journey, told one scroll at a time" accent="#f59e0b" className="mb-0" />
         </div>
-        {CAREER_CHAPTERS.map((chapter, i) => (
-          <CareerChapter key={chapter.year} chapter={chapter} index={i} />
-        ))}
+        {/* Desktop: GSAP pinned horizontal scroll */}
+        <ChronicleHorizontal />
+        {/* Mobile fallback: vertical timeline (no pinning) */}
+        <div className="md:hidden">
+          {CAREER_CHAPTERS.map((chapter, i) => (
+            <CareerChapter key={chapter.year} chapter={chapter} index={i} />
+          ))}
+        </div>
       </section>
 
+      {!professionalMode && <>
       {/* ═══ SECTION 5: THE MONEY LAYER (TENDER WALL) ═══ */}
-      <section data-section data-section-idx="4" aria-label="The Money Layer" className="relative py-32 px-6 md:px-16">
+      <section ref={moneyLayerRef} data-section data-section-idx="4" aria-label="The Money Layer" className="group relative py-32 px-6 md:px-16">
+        <SectionSnapshot sectionRef={moneyLayerRef} title="Money Layer" />
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={3} eyebrow="tender screen" title="The Money Layer" subtitle="Tap a tender — every payment strategy I wired for Singapore retail" accent="#10b981" />
+          <SectionHeader index={4} eyebrow="tender screen" title="The Money Layer" subtitle="Tap a tender — every payment strategy I wired for Singapore retail" accent="#10b981" />
           <Suspense fallback={<SectionFallback />}>
             <TenderWall />
           </Suspense>
@@ -1431,31 +1416,121 @@ export default function PortfolioPage() {
       </section>
 
       {/* ═══ SECTION 6: THE LOYALTY VAULT ═══ */}
-      <section data-section data-section-idx="5" aria-label="The Loyalty Vault" className="relative py-32 px-6 md:px-16">
+      <section ref={loyaltyVaultRef} data-section data-section-idx="5" aria-label="The Loyalty Vault" className="group relative py-32 px-6 md:px-16">
+        <SectionSnapshot sectionRef={loyaltyVaultRef} title="Loyalty Vault" />
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={4} eyebrow="membership core" title="The Loyalty Vault" subtitle="Points, tiers, store credit floors and on-account — poke the actual rules" accent="#14b8a6" />
+          <SectionHeader index={5} eyebrow="membership core" title="The Loyalty Vault" subtitle="Points, tiers, store credit floors and on-account — poke the actual rules" accent="#14b8a6" />
           <Suspense fallback={<SectionFallback />}>
             <LoyaltyVault />
           </Suspense>
         </div>
       </section>
 
-      <MarqueeBand phrases={['Payment Systems', 'Loyalty Core', 'Offline-First', 'gRPC Microservices', '$200K+ Processed']} accent="#14b8a6" tilt={1.5} />
+      {!professionalMode && <MarqueeBand phrases={['Payment Systems', 'Loyalty Core', 'Offline-First', '40+ gRPC Endpoints', '5 Device Types']} accent="#14b8a6" tilt={1.5} />}
 
-      {/* ═══ SECTION 7: METRICS DASHBOARD ═══ */}
-      <section data-section data-section-idx="6" aria-label="Dev Metrics" className="relative py-32 px-6 md:px-16">
+      {/* ═══ SECTION 7: DEVICE FLEET ═══ */}
+      <section data-section data-section-idx="6" aria-label="Device Fleet" className="relative py-32 px-6 md:px-16">
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={5} eyebrow="monitoring" title="Dev Metrics" subtitle="Real-time performance indicators" accent="#3b82f6" />
+          <SectionHeader index={6} eyebrow="android fleet" title="Device Fleet"  subtitle="4 Android apps sharing one core — POS, kiosk, kitchen display, stock take" accent="#f97316" />
+          <Suspense fallback={<SectionFallback />}>
+            <AndroidFleet />
+          </Suspense>
+        </div>
+      </section>
+
+      {/* ═══ SECTION 8: KIOSK EXPERIENCE ═══ */}
+      <section data-section data-section-idx="7" aria-label="Kiosk" className="relative py-32 px-6 md:px-16">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeader index={7} eyebrow="self-service" title="Kiosk" subtitle="Walk through the self-service ordering experience — touch, order, pay" accent="#06b6d4" />
+          <Suspense fallback={<SectionFallback />}>
+            <KioskExperience />
+          </Suspense>
+        </div>
+      </section>
+
+      {/* ═══ SECTION 9: STOCK TAKE PULSE ═══ */}
+      <section data-section data-section-idx="8" aria-label="Stock Take" className="relative py-32 px-6 md:px-16">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeader index={8} eyebrow="inventory scanner" title="Stock Take" subtitle="Real-time inventory scanning — count, detect discrepancies, reconcile" accent="#84cc16" />
+          <Suspense fallback={<SectionFallback />}>
+            <StockTakePulse />
+          </Suspense>
+        </div>
+      </section>
+
+      {/* ═══ SECTION 10: KITCHEN DISPLAY STREAM ═══ */}
+      <section data-section data-section-idx="9" aria-label="Kitchen Display" className="relative py-32 px-6 md:px-16">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeader index={9} eyebrow="order stream" title="Kitchen Display" subtitle="Live order stream — gRPC push, multi-station routing, bump to complete" accent="#ef4444" />
+          <Suspense fallback={<SectionFallback />}>
+            <KitchenDisplayStream />
+          </Suspense>
+        </div>
+      </section>
+
+      {/* ── 10 · Ecosystem ── */}
+      <section ref={ecosystemRef} data-section data-section-idx={10} className="group relative scroll-mt-24 pt-32 pb-16 px-4 md:px-8 max-w-6xl mx-auto">
+        <SectionSnapshot sectionRef={ecosystemRef} title="Ecosystem" />
+        <SectionHeader index={10} eyebrow="architecture" total={PORTFOLIO_SECTIONS.length} title="Ecosystem" subtitle="The complete EPOS V5 architecture — how every device and service connects" accent="#a855f7" />
+        <RevealOnScroll>
+          <Suspense fallback={<SectionFallback />}>
+            <EcosystemFlow />
+          </Suspense>
+        </RevealOnScroll>
+      </section>
+
+      {/* ═══ SECTION 11: SALE PIPELINE ═══ */}
+      <section ref={salePipelineRef} data-section data-section-idx="11" aria-label="Sale Pipeline" className="group relative py-32 px-6 md:px-16">
+        <SectionSnapshot sectionRef={salePipelineRef} title="Sale Pipeline" />
+        <div className="max-w-6xl mx-auto">
+          <SectionHeader index={11} eyebrow="end-to-end flow" title="Sale Pipeline" subtitle="Watch a real transaction flow from scan to telemetry — every step lit up" accent="#f43f5e" />
+          <RevealOnScroll delay={0.15}>
+            <Suspense fallback={<SectionFallback />}>
+              <TransactionSimulator />
+            </Suspense>
+          </RevealOnScroll>
+        </div>
+      </section>
+
+      {/* ═══ SECTION 12: PROMO ENGINE ═══ */}
+      <section ref={promoEngineRef} data-section data-section-idx="12" aria-label="Promo Engine" className="group relative py-32 px-6 md:px-16">
+        <SectionSnapshot sectionRef={promoEngineRef} title="Promo Engine" />
+        <div className="max-w-6xl mx-auto">
+          <SectionHeader index={12} eyebrow="reward logic" title="Promo Engine" subtitle="14 reward types, qualification strategies, and JSON-parameterized advanced vouchers — build a rule and watch it evaluate" accent="#f59e0b" />
+          <RevealOnScroll delay={0.15}>
+            <Suspense fallback={<SectionFallback />}>
+              <PromotionVisualizer />
+            </Suspense>
+          </RevealOnScroll>
+        </div>
+      </section>
+
+      {/* ═══ SECTION 13: OFFLINE SYNC ═══ */}
+      <section data-section data-section-idx="13" aria-label="Offline Sync" className="relative py-32 px-6 md:px-16">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeader index={13} eyebrow="resilience" title="Reliability Lab" subtitle="Inject outages, duplicate callbacks, expired QR payments, and reconnect conflicts" accent="#06b6d4" />
+          <RevealOnScroll delay={0.15}>
+            <Suspense fallback={<SectionFallback />}>
+              <ReliabilityLab />
+            </Suspense>
+          </RevealOnScroll>
+        </div>
+      </section>
+
+      {/* ═══ SECTION 14: METRICS DASHBOARD ═══ */}
+      <section data-section data-section-idx="14" aria-label="Dev Metrics" className="relative py-32 px-6 md:px-16">
+        <div className="max-w-6xl mx-auto">
+          <SectionHeader index={14} eyebrow="monitoring" title="Dev Metrics" subtitle="Real-time performance indicators" accent="#3b82f6" />
           <RevealOnScroll delay={0.15}>
             <GrafanaDashboard />
           </RevealOnScroll>
         </div>
       </section>
 
-      {/* ═══ SECTION 8: ACTIVITY / CONTRIBUTION GRAPH ═══ */}
-      <section data-section data-section-idx="7" aria-label="Activity" className="relative py-32 px-6 md:px-16">
+      {/* ═══ SECTION 15: ACTIVITY / CONTRIBUTION GRAPH ═══ */}
+      <section data-section data-section-idx="15" aria-label="Activity" className="relative py-32 px-6 md:px-16">
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={6} eyebrow="commit history" title="Always Shipping" subtitle="365 days of green squares — consistency is a feature" accent="#22c55e" />
+          <SectionHeader index={15} eyebrow="commit history" title="Always Shipping" subtitle="365 days of green squares — consistency is a feature" accent="#22c55e" />
           <RevealOnScroll delay={0.15}>
             <Suspense fallback={<SectionFallback />}>
               <ContributionGraph />
@@ -1464,40 +1539,44 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      {/* ═══ SECTION 9: SKILLS GALAXY ═══ */}
-      <section data-section data-section-idx="8" aria-label="Skills" className="relative py-32 px-6 md:px-16">
+      {/* ═══ SECTION 16: SKILLS GALAXY ═══ */}
+      <section data-section data-section-idx="16" aria-label="Skills" className="relative py-32 px-6 md:px-16">
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={7} eyebrow="Technical Arsenal" title="Skills Galaxy" subtitle="Hover to explore connections between technologies" accent="#8b5cf6" className="mb-16" />
+          <SectionHeader index={16} eyebrow="Technical Arsenal" title="Skills Galaxy" subtitle="Hover to explore connections between technologies" accent="#8b5cf6" className="mb-16" />
           <RevealOnScroll delay={0.15}>
-            <SkillsGraph />
+            <Suspense fallback={<SectionFallback />}>
+              <SkillsConstellation />
+            </Suspense>
           </RevealOnScroll>
         </div>
       </section>
+      </>}
 
-      {/* ═══ SECTION 10: SELECTED WORKS — EDITORIAL INDEX ═══ */}
-      <section data-section data-section-idx="9" aria-label="Selected Works" className="relative py-32 px-6 md:px-16">
+      {/* ═══ SECTION 17: SELECTED WORKS — EDITORIAL INDEX ═══ */}
+      <section data-section data-section-idx="17" aria-label="Selected Works" className="relative py-32 px-6 md:px-16">
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={8} eyebrow="editorial index" title="Selected Works" subtitle="Flagship projects, editorial style — hover to preview, click for the full case study" accent="#eab308" />
+          <SectionHeader index={17} eyebrow="editorial index" title="Selected Works" subtitle={professionalMode ? 'Three flagship systems with full engineering decisions and evidence' : 'Flagship projects, editorial style — hover to preview, click for the full case study'} accent="#eab308" />
           <Suspense fallback={<SectionFallback />}>
-            <SelectedWorks />
+            <SelectedWorks featuredOnly={professionalMode} />
           </Suspense>
         </div>
       </section>
 
-      {/* ═══ SECTION 11: PROJECTS — VS CODE EXPLORER ═══ */}
-      <section data-section data-section-idx="10" aria-label="Projects" className="relative py-32 px-6 md:px-16">
+      {!professionalMode && <>
+      {/* ═══ SECTION 18: PROJECTS — VS CODE EXPLORER ═══ */}
+      <section data-section data-section-idx="18" aria-label="Projects" className="relative py-32 px-6 md:px-16">
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={9} eyebrow="workspace" title="The Showcase" subtitle="Open the explorer to browse my projects" accent="#0ea5e9" />
+          <SectionHeader index={18} eyebrow="workspace" title="The Showcase" subtitle="Open the explorer to browse my projects" accent="#0ea5e9" />
           <RevealOnScroll delay={0.15}>
             <VSCodeExplorer />
           </RevealOnScroll>
         </div>
       </section>
 
-      {/* ═══ SECTION 12: THE LAB (CODE PLAYGROUND) ═══ */}
-      <section data-section data-section-idx="11" aria-label="The Lab" className="relative py-32 px-6 md:px-16">
+      {/* ═══ SECTION 19: THE LAB (CODE PLAYGROUND) ═══ */}
+      <section data-section data-section-idx="19" aria-label="The Lab" className="relative py-32 px-6 md:px-16">
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={10} eyebrow="the lab" title="Break Things Here" subtitle="Live code snippets — edit, remix, watch it run" accent="#f97316" />
+          <SectionHeader index={19} eyebrow="the lab" title="Break Things Here" subtitle="Live code snippets — edit, remix, watch it run" accent="#f97316" />
           <RevealOnScroll delay={0.15}>
             <Suspense fallback={<SectionFallback />}>
               <CodePlayground />
@@ -1505,31 +1584,34 @@ export default function PortfolioPage() {
           </RevealOnScroll>
         </div>
       </section>
+      </>}
 
-      <WaveDivider />
+      {!professionalMode && <WaveDivider />}
 
-      {/* ═══ SECTION 13: TESTIMONIALS ═══ */}
-      <section data-section data-section-idx="12" aria-label="Testimonials" className="relative py-32 px-6 md:px-16">
+      {/* ═══ SECTION 20: TESTIMONIALS ═══ */}
+      <section data-section data-section-idx="20" aria-label="Testimonials" className="relative py-32 px-6 md:px-16">
         <div className="max-w-4xl mx-auto">
-          <SectionHeader index={11} eyebrow="peer reviews" title="Code Reviews" subtitle="Pull requests approved by colleagues across the industry" accent="#f43f5e" badge={CONTENT_FLAGS.showSampleDataBadges ? 'Sample data' : undefined} />
+          <SectionHeader index={20} eyebrow="professional references" title="References" subtitle="Verified recommendations are published only with explicit permission" accent="#f43f5e" />
           <PRStyleTestimonials />
         </div>
       </section>
 
-      {/* ═══ SECTION 14: KANBAN BOARD ═══ */}
-      <section data-section data-section-idx="13" aria-label="Kanban Board" className="relative py-32 px-6 md:px-16">
+      {!professionalMode && <>
+      {/* ═══ SECTION 21: KANBAN BOARD ═══ */}
+      <section data-section data-section-idx="21" aria-label="Kanban Board" className="relative py-32 px-6 md:px-16">
         <div className="max-w-6xl mx-auto">
-          <SectionHeader index={12} eyebrow="sprint board" title="Currently Working On" subtitle="My active sprint — dragging ideas to production" accent="#06b6d4" />
+          <SectionHeader index={21} eyebrow="sprint board" title="Workflow Demo" subtitle="An illustrative sprint board for exploring the interaction" accent="#06b6d4" badge="Sample data" />
           <RevealOnScroll delay={0.15}>
             <KanbanBoard />
           </RevealOnScroll>
         </div>
       </section>
+      </>}
 
-      <MarqueeBand reverse phrases={['Available for Hire', 'Full-Stack', '.NET 8', 'React & TypeScript', 'Singapore']} accent="#8b5cf6" tilt={-1.5} />
+      {!professionalMode && <MarqueeBand reverse phrases={['Available for Hire', 'Enterprise POS', '.NET 8', 'gRPC Systems', 'Singapore']} accent="#8b5cf6" tilt={-1.5} />}
 
-      {/* ═══ SECTION 15: CONTACT ═══ */}
-      <section data-section data-section-idx="14" aria-label="Contact" className="contact-section relative min-h-screen flex items-center py-32 px-6 md:px-16">
+      {/* ═══ SECTION 22: CONTACT ═══ */}
+      <section data-section data-section-idx="22" aria-label="Contact" className="contact-section relative min-h-screen flex items-center py-32 px-6 md:px-16">
         <div className="absolute inset-0 hidden md:block pointer-events-none">
           <NetworkGraph />
         </div>
@@ -1568,8 +1650,8 @@ export default function PortfolioPage() {
       </section>
 
       {/* Marquee above footer */}
-      <div className="relative overflow-hidden border-y border-slate-800/50 py-5 bg-[#080810]">
-        <div className="flex whitespace-nowrap" style={{ animation: 'marquee 22s linear infinite' }}>
+      <div className="group relative overflow-hidden border-y border-slate-800/50 py-5 bg-[#080810]">
+        <div className="flex whitespace-nowrap group-hover:[animation-play-state:paused]" style={{ animation: 'marquee 22s linear infinite' }}>
           {Array.from({ length: 2 }).map((_, r) => (
             <div key={r} className="flex whitespace-nowrap">
               {['Let\'s Build Something Amazing', 'Open to Opportunities', 'Available for Freelance'].map((t, k) => (
@@ -1582,13 +1664,13 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* ═══ SECTION 14: FOOTER ═══ */}
-      <section data-section data-section-idx="15" aria-label="Footer" className="relative py-24 px-6 border-t border-slate-800/50 overflow-hidden">
+      {/* ═══ SECTION 23: FOOTER ═══ */}
+      <section data-section data-section-idx="23" aria-label="Footer" ref={footerRef} className="relative py-24 px-6 border-t border-slate-800/50 overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
         {/* Giant outlined watermark — typographic signature (Awwwards footer staple) */}
-        <div aria-hidden className="pointer-events-none select-none absolute inset-x-0 -bottom-4 md:-bottom-8 text-center leading-none">
+        <motion.div aria-hidden style={{ y: watermarkY, willChange: 'transform' }} className="pointer-events-none select-none absolute inset-x-0 -bottom-4 md:-bottom-8 text-center leading-none">
           <span className="watermark-outline font-display font-bold text-[24vw] md:text-[18rem] leading-[0.78] whitespace-nowrap text-transparent">EPOS&nbsp;V5</span>
-        </div>
+        </motion.div>
         <div className="max-w-4xl mx-auto relative z-10">
           <ASCIIFooter />
           <div className="relative">
@@ -1605,7 +1687,7 @@ export default function PortfolioPage() {
             </p>
             <div className="flex items-center gap-4">
               <LangToggle />
-              <button onClick={() => scrollToSection(0)} className="group flex items-center gap-2 text-slate-400 hover:text-emerald-400 transition-colors text-sm font-mono">
+              <button onClick={() => scrollToSection('hero')} className="group flex items-center gap-2 text-slate-400 hover:text-emerald-400 transition-colors text-sm font-mono">
                 Back to top <ArrowUp size={16} className="transition-all duration-300 group-hover:-translate-y-2 group-hover:scale-125 group-hover:rotate-[20deg]" />
               </button>
             </div>
@@ -1645,8 +1727,6 @@ function TerminalContactForm() {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [lines, setLines] = useState<TerminalLine[]>([])
-  const [sending, setSending] = useState(false)
-  const [progress, setProgress] = useState(0)
   const [input, setInput] = useState('')
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -1680,45 +1760,28 @@ function TerminalContactForm() {
   useEffect(() => {
     const el = bodyRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [lines, sending, progress])
+  }, [lines])
 
   // Auto-focus the input whenever a new input step begins
   useEffect(() => {
     if (started.current && step < 3) inputRef.current?.focus()
   }, [step])
 
-  const runSending = useCallback(async (visitorName: string, _visitorEmail: string, _visitorMessage: string) => {
-    setSending(true)
-    setProgress(0)
-    appendLines([{ text: '> Processing request...', type: 'system' }])
-
-    // Simulated send — no backend, purely client-side demo
-    let pct = 0
-    const interval = setInterval(() => {
-      pct += 5
-      setProgress(Math.min(pct, 100))
-      if (pct >= 100) {
-        clearInterval(interval)
-        setSending(false)
-        appendLines([
-          { text: '> ████████████████████ 100%', type: 'success' },
-          { text: '>', type: 'system' },
-          { text: '> ✨ Message transmitted successfully!', type: 'success' },
-          { text: `> Thank you, ${visitorName}. I'll respond within 24h.`, type: 'success' },
-          { text: '> (demo mode — message not delivered)', type: 'system' },
-          { text: '>', type: 'system' },
-          { text: 'visitor@leo:~$ exit', type: 'input' },
-          { text: '> Connection closed.', type: 'system' },
-        ])
-        window.dispatchEvent(new CustomEvent('leo-achievement', { detail: 'sign-here' }))
-        setStep(4)
-      }
-    }, 75)
+  const openEmailDraft = useCallback((visitorName: string, visitorEmail: string, visitorMessage: string) => {
+    const subject = encodeURIComponent(`Portfolio enquiry from ${visitorName}`)
+    const body = encodeURIComponent(`Hi Leo,\n\n${visitorMessage}\n\nFrom: ${visitorName} (${visitorEmail})`)
+    appendLines([
+      { text: '> Contact details validated ✓', type: 'success' },
+      { text: '> Opening your email client with a prepared draft...', type: 'system' },
+      { text: '> Please review and press Send in your email app.', type: 'prompt' },
+    ])
+    setStep(4)
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`
   }, [appendLines])
 
   const handleEnter = useCallback(() => {
     const value = input.trim()
-    if (!value || sending || step >= 3) return
+    if (!value || step >= 3) return
 
     const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -1751,13 +1814,12 @@ function TerminalContactForm() {
       setMessage(value)
       appendLines([{ text: `visitor@leo:~$ ${value}`, type: 'input' }])
       setStep(3)
-      runSending(name, email, value)
+      openEmailDraft(name, email, value)
     }
     setInput('')
-  }, [input, sending, step, name, email, appendLines, runSending])
+  }, [input, step, name, email, appendLines, openEmailDraft])
 
   const inputLabel = step === 0 ? 'Enter your name' : step === 1 ? 'Enter your email' : 'Enter your message'
-  const filled = Math.floor(progress / 5)
 
   return (
     <div
@@ -1790,20 +1852,20 @@ function TerminalContactForm() {
         <span className="sr-only" aria-live="polite">
           {step >= 1 && `Name captured: ${name}. `}
           {step >= 2 && `Email captured: ${email}. `}
-          {step >= 4 && `Message captured: ${message}. Message sent.`}
+          {step >= 4 && `Message captured: ${message}. Email draft opened.`}
         </span>
 
         {lines.map((line, i) => (
-          <div key={i} className={`${TERMINAL_LINE_COLORS[line.type]} whitespace-pre-wrap break-words`}>
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className={`${TERMINAL_LINE_COLORS[line.type]} whitespace-pre-wrap break-words`}
+          >
             {line.text === '' ? '\u00A0' : line.text}
-          </div>
+          </motion.div>
         ))}
-
-        {sending && (
-          <div className="text-emerald-300 whitespace-pre">
-            {`> ${'█'.repeat(filled)}${'░'.repeat(Math.max(0, 20 - filled))} ${progress}%`}
-          </div>
-        )}
 
         {step < 3 && (
           <div className="flex items-center text-slate-200">
@@ -1813,7 +1875,7 @@ function TerminalContactForm() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleEnter() } }}
-              disabled={sending || step >= 3}
+              disabled={step >= 3}
               aria-label={inputLabel}
               autoComplete="off"
               spellCheck={false}
@@ -1849,15 +1911,25 @@ function PRStyleTestimonials() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const inView = useInView(wrapRef, { once: true, margin: '-100px' })
 
+  if (PUBLISHED_TESTIMONIALS.length === 0) {
+    return (
+      <div ref={wrapRef} className="max-w-3xl mx-auto rounded-2xl border border-slate-800/70 bg-slate-900/30 px-6 py-10 text-center">
+        <p className="font-mono text-sm text-slate-300">References available on request</p>
+        <p className="mt-2 text-sm text-slate-500">Recommendations are published only after the author approves the wording and attribution.</p>
+      </div>
+    )
+  }
+
   return (
     <div ref={wrapRef} className="space-y-6 max-w-3xl mx-auto">
-      {TESTIMONIALS_DATA.map((t, i) => (
+      {PUBLISHED_TESTIMONIALS.map((t, i) => (
         <motion.div
           key={i}
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: i * 0.2, duration: 0.5, ease: 'easeOut' }}
-          className="bg-[#0d1117] border border-slate-700/60 rounded-xl overflow-hidden font-mono hover:border-emerald-500/30 transition-all duration-300"
+          whileHover={{ y: -3, transition: { duration: 0.2, delay: 0 } }}
+          className="bg-[#0d1117] border border-slate-700/60 rounded-xl overflow-hidden font-mono hover:border-emerald-500/30 hover:shadow-[0_12px_32px_-16px_rgba(16,185,129,0.35)] transition-all duration-300"
         >
           {/* Card header (top bar) */}
           <div className="flex items-center justify-between gap-3 bg-[#161b22] px-4 py-3">
@@ -1894,7 +1966,7 @@ function PRStyleTestimonials() {
 
             {/* Reactions row */}
             <div className="flex flex-wrap items-center gap-2">
-              {(Object.keys(t.reactions) as Array<keyof typeof t.reactions>).map((key) => (
+              {(Object.keys(t.reactions) as Array<'thumbsUp' | 'heart' | 'rocket'>).map((key) => (
                 <span key={key} className="bg-slate-800/60 border border-slate-700/50 rounded-full px-2.5 py-1 text-xs flex items-center gap-1.5">
                   <span>{REACTION_EMOJI[key]}</span>
                   <span className="text-slate-300">{t.reactions[key]}</span>
@@ -2141,10 +2213,16 @@ function VSCodeExplorer() {
                     transition={{ duration: 0.2 }}
                   >
                     {codeLines.map((line, i) => (
-                      <div key={i} className="flex">
+                      <motion.div
+                        key={i}
+                        className="flex"
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.18, delay: Math.min(i * 0.012, 0.3), ease: 'easeOut' }}
+                      >
                         <span className="text-slate-600 text-right pr-4 pl-3 select-none w-12 shrink-0">{i + 1}</span>
                         <span className="whitespace-pre pr-4">{line}</span>
-                      </div>
+                      </motion.div>
                     ))}
                     {/* Project visual thumbnails from the V5 codebase */}
                     {project.caseStudy && project.caseStudy.gallery.length > 0 && (
@@ -2232,7 +2310,197 @@ function VSCodeExplorer() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════
-// ─── CAREER CHRONICLE — PINNED SCROLLYTELLING ─────────────────────────
+// ─── CHRONICLE HORIZONTAL — GSAP PINNED SCROLLYTELLING ─────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+function ChronicleHorizontal() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const progressRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(() => {
+    // Only enable horizontal pinning on desktop
+    if (window.innerWidth < 768) return
+
+    const container = containerRef.current
+    const track = trackRef.current
+    if (!container || !track) return
+
+    const panels = gsap.utils.toArray<HTMLElement>('.chronicle-panel')
+    if (panels.length === 0) return
+
+    gsap.to(track, {
+      x: () => -(track.scrollWidth - window.innerWidth),
+      ease: 'none',
+      scrollTrigger: {
+        trigger: container,
+        pin: true,
+        scrub: 1,
+        end: () => '+=' + (track.scrollWidth - window.innerWidth),
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          if (progressRef.current) {
+            progressRef.current.style.transform = `scaleX(${self.progress})`
+          }
+        },
+      },
+    })
+  }, { scope: containerRef })
+
+  return (
+    <div ref={containerRef} className="hidden md:block relative" style={{ overflow: 'hidden' }}>
+      {/* Progress bar at top of pinned section */}
+      <div className="absolute top-0 left-0 right-0 z-20 h-1" style={{ background: '#1e293b' }}>
+        <div
+          ref={progressRef}
+          className="h-full origin-left"
+          style={{
+            background: 'linear-gradient(90deg, #f59e0b, #ef4444, #8b5cf6)',
+            transform: 'scaleX(0)',
+            transition: 'none',
+          }}
+        />
+      </div>
+      {/* Chapter indicators */}
+      <div className="absolute top-4 left-0 right-0 z-20 flex items-center justify-center gap-4">
+        {CAREER_CHAPTERS.map((ch, i) => (
+          <div key={ch.year} className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full" style={{ background: ch.color, boxShadow: `0 0 8px ${ch.color}66` }} />
+            <span className="font-mono text-[10px] text-slate-500">{ch.year}</span>
+            {i < CAREER_CHAPTERS.length - 1 && <span className="text-slate-700 font-mono text-[10px]">→</span>}
+          </div>
+        ))}
+      </div>
+      {/* Horizontal track */}
+      <div ref={trackRef} className="flex" style={{ width: `${CAREER_CHAPTERS.length * 100}vw` }}>
+        {CAREER_CHAPTERS.map((chapter, i) => (
+          <div
+            key={chapter.year}
+            className="chronicle-panel flex-shrink-0 relative"
+            style={{ width: '100vw', minHeight: '100vh' }}
+          >
+            <ChroniclePanel chapter={chapter} index={i} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* A single horizontal panel showing one career chapter */
+function ChroniclePanel({ chapter, index }: { chapter: typeof CAREER_CHAPTERS[number]; index: number }) {
+  const isLast = index === CAREER_CHAPTERS.length - 1
+  const hash = chapter.company.split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) & 0xfffffff, 0).toString(16).slice(0, 7)
+  const slug = chapter.company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-$/, '')
+
+  return (
+    <div className="h-screen flex flex-col justify-center px-8 md:px-16 relative" style={{ overflow: 'hidden' }}>
+      {/* Background gradient per chapter */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 30%, ${chapter.color}18, transparent 70%)` }} />
+
+      {/* Left vertical rail decoration */}
+      <div className="absolute left-6 top-[15%] bottom-[15%] pointer-events-none">
+        <div className="h-full w-[3px] rounded-full" style={{ background: `linear-gradient(to bottom, transparent, ${chapter.color}66, transparent)` }} />
+        <div className="absolute top-0 -translate-x-[5px] w-3 h-3 rounded-full" style={{ background: chapter.color, boxShadow: `0 0 12px ${chapter.color}66` }} />
+        <div className="absolute bottom-0 -translate-x-[5px] w-3 h-3 rounded-full" style={{ background: `${chapter.color}44` }} />
+      </div>
+
+      <div className="max-w-5xl mx-auto w-full relative z-10">
+        {/* Chapter header */}
+        <div className="text-center mb-10">
+          <div className="font-mono text-xs mb-3 flex items-center justify-center gap-2 flex-wrap">
+            <span className="text-amber-400">{hash}</span>
+            <span className="text-slate-500">—</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] border" style={{ color: chapter.color, borderColor: `${chapter.color}50` }}>
+              feature/{slug}
+            </span>
+            {isLast
+              ? <span className="text-amber-400 text-[10px] animate-pulse">in progress...</span>
+              : <span className="text-emerald-400 text-[10px]">merged ✓</span>}
+          </div>
+          <h2 className="font-display text-6xl md:text-8xl font-bold mb-2 bg-clip-text text-transparent"
+            style={{ backgroundImage: `linear-gradient(135deg, ${chapter.color} 20%, ${chapter.color}bb 55%, ${chapter.color}55 100%)`, filter: `drop-shadow(0 0 30px ${chapter.color}33)` }}>
+            {chapter.year}
+          </h2>
+          <h3 className="font-display text-2xl md:text-3xl font-bold text-slate-100">{chapter.company}</h3>
+          <div className="mt-2">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-medium" style={{ color: chapter.color, borderColor: `${chapter.color}40`, background: `${chapter.color}0f` }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: chapter.color, boxShadow: `0 0 8px ${chapter.color}` }} />
+              {chapter.role}
+            </span>
+          </div>
+          <span className="font-mono text-xs text-slate-600 mt-2 block">{chapter.duration}</span>
+        </div>
+
+        {/* Mission */}
+        <div className="text-center mb-8 max-w-3xl mx-auto">
+          <span className="font-mono text-xs text-slate-500 uppercase tracking-widest mb-4 block">The Mission</span>
+          <div className="relative px-8">
+            <span aria-hidden className="absolute -top-3 left-0 text-5xl leading-none font-serif select-none pointer-events-none" style={{ color: `${chapter.color}33` }}>&ldquo;</span>
+            <p className="text-lg md:text-xl text-slate-200 font-light leading-relaxed">{chapter.challenge}</p>
+            <span aria-hidden className="absolute -bottom-4 right-0 text-5xl leading-none font-serif select-none pointer-events-none" style={{ color: `${chapter.color}33` }}>&rdquo;</span>
+          </div>
+        </div>
+
+        {/* Projects grid */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          {chapter.projects.slice(0, 4).map((p, i) => (
+            <div key={p.name} className="group p-4 rounded-xl bg-slate-900/50 border backdrop-blur-sm transition-all duration-300 hover:-translate-y-1"
+              style={{ borderColor: `${chapter.color}30` }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${chapter.color}90`; e.currentTarget.style.boxShadow = `0 8px 30px -8px ${chapter.color}40` }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${chapter.color}30`; e.currentTarget.style.boxShadow = 'none' }}
+            >
+              <div className="flex items-start gap-2 mb-2">
+                <span className="shrink-0 mt-0.5 w-5 h-5 rounded flex items-center justify-center font-mono text-[10px] font-bold"
+                  style={{ color: chapter.color, background: `${chapter.color}18`, border: `1px solid ${chapter.color}45` }}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <h4 className="font-semibold text-sm leading-snug" style={{ color: chapter.color }}>{p.name}</h4>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{p.desc}</p>
+              {p.badges && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {p.badges.slice(0, 3).map((b) => (
+                    <span key={b} className="px-2 py-0.5 rounded-full font-mono text-[9px] tracking-wide" style={{ color: chapter.color, background: `${chapter.color}12`, border: `1px solid ${chapter.color}45` }}>
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Impact metrics row */}
+        <div className="flex items-center justify-center gap-4">
+          {chapter.metrics.map((m, i) => (
+            <div key={m.label} className="flex items-center">
+              <div className="w-32 bg-[#0d1117] border rounded-lg px-3 py-3 text-center" style={{ borderColor: `${chapter.color}60` }}>
+                <p className="font-mono text-2xl font-bold leading-none" style={{ color: chapter.color }}><CountUpValue value={m.value} /></p>
+                <p className="text-[10px] text-slate-500 mt-1.5 leading-tight">{m.label}</p>
+              </div>
+              {i < chapter.metrics.length - 1 && (
+                <span className="text-slate-600 font-mono select-none px-2 tracking-tighter">╌╌▶</span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Skills */}
+        <div className="mt-6 flex flex-wrap justify-center gap-1.5">
+          {chapter.skills.map((s) => (
+            <span key={s} className="px-2.5 py-1 rounded-full border text-[10px] font-mono" style={{ borderColor: `${chapter.color}60`, color: chapter.color }}>
+              {s}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// ─── CAREER CHRONICLE — VERTICAL FALLBACK ─────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 
 // ─── CI/CD pipeline stage names (mapped to metrics by index) ───
@@ -2242,21 +2510,21 @@ const PIPELINE_STAGES = ['Build', 'Test', 'Deploy', 'Monitor', 'Scale']
 function CountUpValue({ value }: { value: string }) {
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref, { once: true, margin: '-40px' })
-  const mv = useMotionValue(0)
   const parsed = useMemo(() => {
     const m = value.match(/^([^0-9]*)([0-9][0-9.,]*)(.*)$/)
     if (!m) return null
     return { prefix: m[1], target: parseFloat(m[2].replace(/,/g, '')), decimals: (m[2].split('.')[1] ?? '').length, suffix: m[3] }
   }, [value])
-  const text = useTransform(mv, (v) => (parsed ? `${parsed.prefix}${v.toFixed(parsed.decimals)}${parsed.suffix}` : value))
-  useEffect(() => {
-    if (!inView || !parsed) return
-    const controls = animate(mv, parsed.target, { duration: 1.3, ease: [0.16, 1, 0.3, 1] })
-    return () => controls.stop()
-  }, [inView, parsed, mv])
   return (
     <span ref={ref}>
-      <motion.span>{text}</motion.span>
+      {parsed ? (
+        <NumberFlow
+          value={inView ? parsed.target : 0}
+          prefix={parsed.prefix}
+          suffix={parsed.suffix}
+          format={{ minimumFractionDigits: parsed.decimals, maximumFractionDigits: parsed.decimals }}
+        />
+      ) : value}
     </span>
   )
 }

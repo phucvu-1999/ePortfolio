@@ -1,23 +1,10 @@
 // ─── StyleSwitcher — floating dock to jump between portfolio variants ────────
-// Mounted on every portfolio variant page (portfolio-1 … portfolio-4).
-// Keyboard: press 0–4 to switch styles instantly.
+// Mounted on every portfolio variant page (portfolio-1 … portfolio-4, awesome).
+// Keyboard: press 0–5 to switch styles instantly.
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { LayoutGrid } from 'lucide-react'
-
-export const PORTFOLIO_STYLES = [
-  { path: '/portfolio', label: 'Original', num: '0' },
-  { path: '/portfolio-1', label: 'Cinematic', num: '1' },
-  { path: '/portfolio-2', label: 'Minimal', num: '2' },
-  { path: '/portfolio-3', label: 'Brutal', num: '3' },
-  { path: '/portfolio-4', label: 'Bento', num: '4' },
-]
-
-/** Extracts the variant base path from e.g. /portfolio-3/project/xyz → /portfolio-3 */
-export function styleBaseOf(pathname: string): string {
-  const m = pathname.match(/^(\/portfolio(?:-[1-4])?)/)
-  return m ? m[1] : '/portfolio'
-}
+import { PORTFOLIO_STYLES, styleBaseOf } from './portfolioStyles'
 
 export default function StyleSwitcher({ variant = 'dark' }: { variant?: 'dark' | 'brutal' }) {
   const { pathname } = useLocation()
@@ -59,7 +46,7 @@ export default function StyleSwitcher({ variant = 'dark' }: { variant?: 'dark' |
               ? 'flex h-8 w-8 shrink-0 items-center justify-center bg-black'
               : 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/5'
           }
-          title="Portfolio styles — press 0-4 to switch"
+          title="Portfolio styles — press 0-5 to switch"
         >
           <LayoutGrid size={13} className={brutal ? 'text-[#f5e100]' : 'text-emerald-400'} />
         </span>

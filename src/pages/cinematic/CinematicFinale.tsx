@@ -42,7 +42,7 @@ export function TestimonialsSection() {
       <div className="mb-8 flex items-center gap-4">
         <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/40 to-transparent" />
         <span className="font-mono text-xs uppercase tracking-widest text-emerald-500/60">
-          Testimonials
+          References
         </span>
       </div>
 
@@ -51,10 +51,15 @@ export function TestimonialsSection() {
         className="mb-16 font-bold tracking-tighter text-white"
         style={{ fontSize: 'clamp(2rem, 5vw, 4rem)' }}
       >
-        What Colleagues Say
+        Professional References
       </SplitReveal>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {TESTIMONIALS_DATA.length === 0 && (
+          <div className="col-span-full rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 text-sm text-white/45">
+            References available on request. Recommendations are published only with explicit permission.
+          </div>
+        )}
         {TESTIMONIALS_DATA.map((t, i) => (
           <div
             key={i}

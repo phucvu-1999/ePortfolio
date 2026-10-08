@@ -10,8 +10,9 @@ import { PROJECTS } from './content'
  * image preview that trails the cursor on a spring. Clicking a row
  * opens the full case study.
  */
-export default function SelectedWorks() {
+export default function SelectedWorks({ featuredOnly = false }: { featuredOnly?: boolean }) {
   const [active, setActive] = useState<number | null>(null)
+  const projects = featuredOnly ? PROJECTS.filter((project) => project.featured).slice(0, 3) : PROJECTS
 
   // Cursor-follow preview: raw position → spring for that trailing feel
   const mx = useMotionValue(0)
@@ -24,7 +25,7 @@ export default function SelectedWorks() {
     my.set(e.clientY)
   }
 
-  const activeProject = active !== null ? PROJECTS[active] : null
+  const activeProject = active !== null ? projects[active] : null
 
   return (
     <div className="relative" onMouseMove={onMove} onMouseLeave={() => setActive(null)}>
@@ -33,7 +34,7 @@ export default function SelectedWorks() {
       </p>
 
       <div className="border-t border-slate-800/60">
-        {PROJECTS.map((p, i) => {
+        {projects.map((p, i) => {
           const img = p.caseStudy?.gallery?.[0]
           const isActive = active === i
           return (

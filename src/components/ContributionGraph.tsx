@@ -106,14 +106,15 @@ export default function ContributionGraph() {
       {/* Header + V5 POS metrics */}
       <div className="flex flex-wrap items-end justify-between gap-6 mb-8">
         <div>
-          <div className="font-mono text-xs text-emerald-400 uppercase tracking-widest mb-1">
-            V5 POS · Contribution Overview
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs text-emerald-400 uppercase tracking-widest">V5 POS · Activity illustration</span>
+            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-amber-400">Sample data</span>
           </div>
           <div className="text-2xl font-bold text-slate-100" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <CountUp target={totalCommits} /> contributions
+            <CountUp target={totalCommits} /> illustrative contributions
           </div>
           <div className="text-sm text-slate-500 mt-1">
-            2020 — Present · {activeDays} active days
+            Generated visualization · {activeDays} sample active days
           </div>
         </div>
         <div className="flex gap-8">

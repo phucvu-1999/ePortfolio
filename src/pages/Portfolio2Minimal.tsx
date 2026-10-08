@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useSpring, useInView } from 'framer-motion'
 import {
   ExternalLink, Star, Menu, X, Mail, Download, MapPin,
   ThumbsUp, Heart, Rocket, Clock, ArrowUpRight, ArrowUp,
@@ -262,7 +262,7 @@ export default function Portfolio2Minimal() {
 
             <p style={{ color: C.muted, fontSize: 15, lineHeight: 1.6, maxWidth: 320 }}>
               I build mission-critical point-of-sale systems that process real money across
-              multiple platforms — shipping enterprise software with zero financial incidents.
+              multiple platforms, with explicit recovery and reconciliation paths.
             </p>
 
             {/* availability badge */}
@@ -348,7 +348,7 @@ export default function Portfolio2Minimal() {
 
           {/* social links with hover tooltips */}
           <div className="flex items-center gap-5">
-            {SOCIAL_LINKS.map(l => (
+            {SOCIAL_LINKS.filter((link) => link.url).map(l => (
               <div key={l.platform} className="relative group">
                 <a
                   href={l.url || '#'}
@@ -425,7 +425,7 @@ export default function Portfolio2Minimal() {
                 Since then I've grown from building UI components to owning the entire money
                 layer — <Accent>20+ payment strategies</Accent>, NETS terminal protocols, NTUC
                 Linkpoints loyalty, and NEA government vouchers — with{' '}
-                <Accent>zero financial incidents</Accent> across all integrations.
+                <Accent>idempotent recovery</Accent> across critical integrations.
               </p>
               <p style={{ color: C.muted, lineHeight: 1.7, marginBottom: 24 }}>
                 Today I lead the architecture of a <Accent>30+ module .NET 8 ecosystem</Accent>{' '}
@@ -743,7 +743,14 @@ export default function Portfolio2Minimal() {
                     e.currentTarget.style.transform = 'translateY(0)'
                     setHoveredProject(null)
                   }}
+                  onMouseMove={e => {
+                    const r = e.currentTarget.getBoundingClientRect()
+                    e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
+                    e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
+                  }}
                 >
+                  {/* cursor-follow spotlight */}
+                  <div className="card-spotlight" aria-hidden />
                   {/* mock browser preview bar */}
                   <AnimatePresence>
                     {hoveredProject === p.slug && (
@@ -805,7 +812,7 @@ export default function Portfolio2Minimal() {
                     )}
                   </AnimatePresence>
 
-                  <div style={{ padding: 24 }}>
+                  <div style={{ padding: 24, position: 'relative', zIndex: 2 }}>
                     {/* featured badge */}
                     {p.featured && (
                       <span
@@ -1053,6 +1060,7 @@ export default function Portfolio2Minimal() {
                               height: '100%',
                               background: C.accent,
                               borderRadius: 3,
+                              boxShadow: `0 0 10px ${C.accent}55`,
                             }}
                           />
                         </div>
@@ -1077,14 +1085,20 @@ export default function Portfolio2Minimal() {
 
           {/* ── 05. Testimonials ──────────────────────────────────── */}
           <section id="testimonials" ref={registerRef('testimonials')} className="mb-32">
-            <SectionTitle num="05" title="Testimonials" />
+            <SectionTitle num="05" title="References" />
             <div className="flex flex-col gap-6">
+              {TESTIMONIALS_DATA.length === 0 && (
+                <div style={{ background: C.bgLight, borderRadius: 8, padding: '24px', border: `1px solid ${C.border}`, color: C.muted }}>
+                  References available on request. Recommendations are published only with explicit permission.
+                </div>
+              )}
               {TESTIMONIALS_DATA.map((t, i) => (
                 <motion.div
                   key={t.name}
                   variants={fadeUp}
                   initial="hidden"
                   whileInView="visible"
+                  whileHover={{ y: -3, boxShadow: `0 8px 28px ${C.accent}14` }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   style={{
@@ -1271,7 +1285,7 @@ export default function Portfolio2Minimal() {
 
               {/* social links row */}
               <div className="flex items-center justify-center gap-5 mt-8">
-                {SOCIAL_LINKS.map(l => (
+                {SOCIAL_LINKS.filter((link) => link.url).map(l => (
                   <a
                     key={l.platform}
                     href={l.url || '#'}
@@ -1299,7 +1313,7 @@ export default function Portfolio2Minimal() {
         }}
       >
         <div className="flex items-center justify-center gap-5 mb-4">
-          {SOCIAL_LINKS.map(l => (
+          {SOCIAL_LINKS.filter((link) => link.url).map(l => (
             <a
               key={l.platform}
               href={l.url || '#'}
@@ -1338,6 +1352,7 @@ export default function Portfolio2Minimal() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
+            whileHover={{ scale: 1.1 }}
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             aria-label="Back to top"
             style={{
@@ -1355,6 +1370,7 @@ export default function Portfolio2Minimal() {
               border: `1px solid ${C.accent}50`,
               color: C.accent,
               cursor: 'pointer',
+              boxShadow: `0 0 14px ${C.accent}25`,
             }}
           >
             <ArrowUp size={16} />
@@ -1382,6 +1398,16 @@ export default function Portfolio2Minimal() {
           0%   { transform: scale(1); opacity: 0.6; }
           100% { transform: scale(2.2); opacity: 0; }
         }
+        .card-spotlight {
+          position: absolute; inset: 0; pointer-events: none;
+          opacity: 0; transition: opacity .3s ease;
+          background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%), ${C.accent}14, transparent 70%);
+          z-index: 1;
+        }
+        .group:hover .card-spotlight { opacity: 1; }
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+        }
       `}</style>
     </div>
   )
@@ -1390,8 +1416,11 @@ export default function Portfolio2Minimal() {
 /* ── helper components ──────────────────────────────────────────────────── */
 
 function SectionTitle({ num, title }: { num: string; title: string }) {
+  const ref = useRef<HTMLHeadingElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-40px' })
   return (
     <h2
+      ref={ref}
       className="flex items-center gap-3 mb-8"
       style={{ fontSize: 28, fontWeight: 700 }}
     >
@@ -1406,7 +1435,12 @@ function SectionTitle({ num, title }: { num: string; title: string }) {
         {num}.
       </span>
       {title}
-      <span style={{ flex: 1, height: 1, background: C.border, marginLeft: 8 }} />
+      <motion.span
+        initial={{ scaleX: 0 }}
+        animate={inView ? { scaleX: 1 } : {}}
+        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.15 }}
+        style={{ flex: 1, height: 1, background: C.border, marginLeft: 8, transformOrigin: 'left' }}
+      />
     </h2>
   )
 }

@@ -9,8 +9,7 @@ import {
   PROJECTS,
 } from './content'
 import type { SkillCategory } from './content'
-
-const NAME = 'Leo Phucvu'
+import { PORTFOLIO_PROFILE, isPublishableMetric } from './profile'
 const MARGIN_LEFT = 20
 const MARGIN_RIGHT = 20
 const PAGE_WIDTH = 210 // A4 width in mm
@@ -43,7 +42,7 @@ export async function downloadResume(): Promise<void> {
   // ─── Header ───
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(20)
-  doc.text(NAME, MARGIN_LEFT, y)
+  doc.text(PORTFOLIO_PROFILE.name, MARGIN_LEFT, y)
   y += 7
 
   doc.setFont('helvetica', 'normal')
@@ -74,9 +73,9 @@ export async function downloadResume(): Promise<void> {
   doc.setFontSize(9)
   doc.setTextColor(50, 50, 50)
   const summary =
-    'Senior Full-Stack Developer with 5+ years of experience building high-performance web applications. ' +
-    'Specialized in React, TypeScript, and Node.js with a track record of shipping mission-critical systems ' +
-    'processing $200K+ in transactions and serving 50K+ daily users.'
+    'Enterprise POS systems engineer with 5+ years of experience building payment, loyalty, offline-first, ' +
+    'and multi-device retail software. Specialized in C#, .NET 8, WPF, gRPC, SQLite, and production-safe ' +
+    'migration of mission-critical systems.'
   const summaryLines = doc.splitTextToSize(summary, CONTENT_WIDTH)
   doc.text(summaryLines, MARGIN_LEFT, y)
   y += summaryLines.length * 4 + 4
@@ -105,11 +104,11 @@ export async function downloadResume(): Promise<void> {
     doc.text(chapter.duration, PAGE_WIDTH - MARGIN_RIGHT, y, { align: 'right' })
     y += 4.5
 
-    // Top 2 metrics as bullets
+    // Only publish scope metrics that are directly supported by project data.
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
     doc.setTextColor(50, 50, 50)
-    const bullets = chapter.metrics.slice(0, 2)
+    const bullets = chapter.metrics.filter(isPublishableMetric).slice(0, 2)
     for (const m of bullets) {
       if (!checkPageSpace(5)) break
       doc.text(`•  ${m.value} ${m.label}`, MARGIN_LEFT + 3, y)

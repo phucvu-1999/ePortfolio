@@ -5,6 +5,8 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useToast } from '../contexts/ToastContext'
 import { addGuestbookEntry, loadGuestbook } from '../lib/guestbook'
 import { playSound } from '../lib/sound'
+import { PORTFOLIO_PROFILE, publishedSocialLinks } from '../pages/portfolio/profile'
+import type { PortfolioSection, PortfolioSectionId } from '../pages/portfolio/sections'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // InteractiveTerminal — a visitor-facing CLI (leo-cli) docked bottom-right.
@@ -12,16 +14,16 @@ import { playSound } from '../lib/sound'
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface InteractiveTerminalProps {
-  onNavigate: (sectionIdx: number) => void
+  onNavigate: (sectionId: PortfolioSectionId) => void
   onEvent?: (event: string) => void
   professionalMode?: boolean
+  sections: readonly PortfolioSection[]
 }
 
 type LineKind = 'input' | 'output' | 'error' | 'success' | 'system'
 interface Line { id: number; kind: LineKind; text: string }
 
 const HISTORY_KEY = 'leo-cli-history'
-const SECTION_NAMES = ['hero', 'checkout', 'about', 'chronicle', 'tender', 'loyalty', 'metrics', 'activity', 'skills', 'works', 'projects', 'lab', 'testimonials', 'kanban', 'contact', 'footer']
 
 const BANNER = [
   '██╗     ███████╗ ██████╗      ██╗     ██████╗',
@@ -53,19 +55,19 @@ const HELP_TEXT = [
 ].join('\n')
 
 const WHOAMI_TEXT = [
-  'leo — creative developer & designer',
+  `${PORTFOLIO_PROFILE.name} — ${PORTFOLIO_PROFILE.role}`,
   '',
-  'Builds cinematic web experiences with React, TypeScript and',
-  'Framer Motion. Obsessed with terminals, motion and pixels',
-  'that feel alive. Currently open to interesting problems.',
+  'Builds mission-critical retail systems across Windows, Android,',
+  'and iOS with C#, .NET 8, WPF, gRPC, and offline-first design.',
+  PORTFOLIO_PROFILE.currentFocus + '.',
 ].join('\n')
 
 const SKILLS_TEXT = [
-  'languages    TypeScript · JavaScript · HTML · CSS · SQL',
-  'frontend     React · Next.js · Framer Motion · GSAP · Tailwind',
-  'backend      Node.js · PostgreSQL · REST · GraphQL',
-  'tooling      Vite · Git · Figma · Vitest',
-  'practices    motion design · a11y · performance · DX',
+  'languages    C# · TypeScript · SQL · XAML',
+  'clients      WPF · ReactiveUI · Xamarin · React',
+  'backend      .NET 8 · gRPC · PostgreSQL · SQLite · EF Core',
+  'operations   Sentry · Aliyun SLS · Hangfire · ClickOnce',
+  'practices    architecture · MVVM · resilience · payment safety',
 ].join('\n')
 
 const PROJECTS_TEXT = [
@@ -78,18 +80,17 @@ const PROJECTS_TEXT = [
 ].join('\n')
 
 const CONTACT_TEXT = [
-  'email      hello@portfolio.dev   (click the mail icon in Contact)',
-  'github     github.com/leo',
-  'linkedin   linkedin.com/in/leo',
+  `email      ${PORTFOLIO_PROFILE.email}`,
+  ...publishedSocialLinks.map((link) => `${link.platform.toLowerCase().padEnd(10)} ${link.url}`),
   '',
   'or run:  goto contact',
 ].join('\n')
 
 const SOCIALS_TEXT = [
-  '🐙 github     github.com/leo',
-  '💼 linkedin   linkedin.com/in/leo',
-  '🐦 twitter    twitter.com/leo_dev',
-  '✉️  email      hello@portfolio.dev',
+  ...(publishedSocialLinks.length > 0
+    ? publishedSocialLinks.map((link) => `${link.platform.toLowerCase().padEnd(10)} ${link.url}`)
+    : ['No public social profiles are configured yet.']),
+  `email      ${PORTFOLIO_PROFILE.email}`,
 ].join('\n')
 
 const LS_TEXT = [
@@ -99,13 +100,13 @@ const LS_TEXT = [
 ].join('\n')
 
 const RESUME_TEXT = [
-  'resume.txt — leo, creative developer',
+  `resume.txt — ${PORTFOLIO_PROFILE.name}, ${PORTFOLIO_PROFILE.role}`,
   '',
-  '2021–now   Senior Frontend Engineer — various rockets 🚀',
-  '2019–21    UI Engineer — design systems & motion',
-  '2017–19    Web Developer — agency life, 100+ launches',
+  '2024–now   Lead Systems Engineer — EPOS Singapore',
+  '2022–24    Senior Software Engineer — EPOS Singapore',
+  '2020–22    Software Engineer — EPOS Singapore',
   '',
-  '(the real one is available on request — run `goto contact`)',
+  '(download the full PDF from the hero or contact section)',
 ].join('\n')
 
 const COMMAND_NAMES = [
@@ -136,7 +137,7 @@ function TerminalConfetti() {
   )
 }
 
-export default function InteractiveTerminal({ onNavigate, onEvent, professionalMode }: InteractiveTerminalProps) {
+export default function InteractiveTerminal({ onNavigate, onEvent, professionalMode, sections }: InteractiveTerminalProps) {
   const [open, setOpen] = useState(false)
   const [minimized, setMinimized] = useState(false)
   const [lines, setLines] = useState<Line[]>([])
@@ -289,12 +290,12 @@ export default function InteractiveTerminal({ onNavigate, onEvent, professionalM
       }
       case 'goto': {
         const target = (args[0] || '').toLowerCase()
-        const idx = SECTION_NAMES.findIndex(s => s.startsWith(target))
-        if (idx >= 0) {
-          push([{ kind: 'success', text: `→ warping to ${SECTION_NAMES[idx]}...` }])
-          onNavigate(idx)
+        const section = sections.find((candidate) => candidate.id.startsWith(target) || candidate.label.toLowerCase().startsWith(target))
+        if (section) {
+          push([{ kind: 'success', text: `→ warping to ${section.label.toLowerCase()}...` }])
+          onNavigate(section.id)
         } else {
-          push([{ kind: 'error', text: `unknown section '${target || '?'}' — options: ${SECTION_NAMES.join(', ')}` }])
+          push([{ kind: 'error', text: `unknown section '${target || '?'}' — options: ${sections.map((candidate) => candidate.id).join(', ')}` }])
         }
         break
       }
@@ -334,7 +335,7 @@ export default function InteractiveTerminal({ onNavigate, onEvent, professionalM
           push([{ kind: 'success', text: 'ACCESS GRANTED — excellent decision. taking you to contact...' }])
           showToast('🎉 Hired! (well, almost — say hi below)', 'success')
           window.dispatchEvent(new CustomEvent('leo-achievement', { detail: 'deal-maker' }))
-          setTimeout(() => onNavigate(14), 500)
+          setTimeout(() => onNavigate('contact'), 500)
         } else {
           push([{ kind: 'error', text: 'leo is not in the sudoers file. this incident will be reported. 🚨' }])
         }
@@ -357,7 +358,7 @@ export default function InteractiveTerminal({ onNavigate, onEvent, professionalM
       default:
         push([{ kind: 'error', text: `command not found: ${name} — type \`help\`` }])
     }
-  }, [push, history, theme, onNavigate, onEvent, setTheme, showToast])
+  }, [push, history, theme, onNavigate, onEvent, sections, setTheme, showToast])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {

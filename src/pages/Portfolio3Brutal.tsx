@@ -66,6 +66,26 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
   )
 }
 
+/* ── Section title with spring "slam" entrance ─────────────────────────────── */
+function SlamTitle({ children, fontSize = 'clamp(2.5rem, 5vw, 4.5rem)', style }: {
+  children: React.ReactNode; fontSize?: string; style?: React.CSSProperties
+}) {
+  const ref = useRef<HTMLHeadingElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-40px' })
+  return (
+    <motion.h2
+      ref={ref}
+      className="brutal-heading"
+      initial={{ scale: 1.4, rotate: -5, opacity: 0 }}
+      animate={inView ? { scale: 1, rotate: 0, opacity: 1 } : {}}
+      transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+      style={{ fontSize, ...style }}
+    >
+      {children}
+    </motion.h2>
+  )
+}
+
 /* ── Scribble underline SVG (animated draw-in) ───────────────────────────── */
 function ScribbleUnderline({ color = '#ff6b9d', width = 200 }: { color?: string; width?: number }) {
   const ref = useRef<SVGSVGElement>(null)
@@ -96,7 +116,7 @@ function ZigzagDivider({ color = '#000', bg = 'transparent' }: { color?: string;
 }
 
 /* ── Marquee band (pause on hover, optional angled) ────────────────────────── */
-function MarqueeBand({ text, bg = '#000', fg = '#fff', angled }: { text: string; bg?: string; fg?: string; angled?: boolean }) {
+function MarqueeBand({ text, bg = '#000', fg = '#fff', angled, reverse }: { text: string; bg?: string; fg?: string; angled?: boolean; reverse?: boolean }) {
   const stickers = ['◼', '✦', '→', '★']
   const parts = text.trim().split('★').filter(Boolean)
   const repeated = Array(4).fill(null).map((_, ri) =>
@@ -112,7 +132,7 @@ function MarqueeBand({ text, bg = '#000', fg = '#fff', angled }: { text: string;
         ...(angled ? { transform: 'rotate(-1deg) scale(1.02)', margin: '-4px -8px', position: 'relative' as const, zIndex: 2 } : {}),
       }}
     >
-      <div className="brutal-marquee">{repeated}</div>
+      <div className="brutal-marquee" style={reverse ? { animationDirection: 'reverse' } : undefined}>{repeated}</div>
     </div>
   )
 }
@@ -246,6 +266,37 @@ function SingaporeTime() {
     }}>
       <Clock size={16} /> SGT {time}
     </span>
+  )
+}
+
+/* ── Copy-email chip with stamped feedback ─────────────────────────────────── */
+function CopyEmailChip() {
+  const [copied, setCopied] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(CONTACT_EMAIL)
+      setCopied(true)
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = setTimeout(() => setCopied(false), 1800)
+    } catch { /* clipboard unavailable */ }
+  }
+  return (
+    <motion.button
+      onClick={copy}
+      initial={false}
+      animate={copied ? { scale: [1, 1.12, 1], rotate: [0, 3, 0] } : { scale: 1, rotate: -1.5 }}
+      whileHover={{ scale: 1.08, rotate: 0 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+      style={{
+        background: copied ? '#7cff01' : '#f5e100', border: BORDER, boxShadow: SHADOW,
+        padding: '10px 20px', fontWeight: 900, fontSize: '0.9rem', textTransform: 'uppercase',
+        cursor: 'pointer', letterSpacing: '0.04em',
+      }}
+    >
+      {copied ? '✓ COPIED!' : '📋 COPY EMAIL'}
+    </motion.button>
   )
 }
 
@@ -577,6 +628,11 @@ export default function Portfolio3Brutal() {
         .brutal-project-card:hover{color:#fff !important;}
         .brutal-project-card:hover img{transform:scale(1.05) rotate(0deg) !important;}
         .brutal-torn{clip-path:polygon(0% 0%,4% 2%,8% 0%,12% 1.5%,16% 0%,20% 2%,24% 0%,28% 1%,32% 0%,36% 2%,40% 0%,44% 1.5%,48% 0%,52% 2%,56% 0%,60% 1%,64% 0%,68% 2%,72% 0%,76% 1.5%,80% 0%,84% 2%,88% 0%,92% 1%,96% 0%,100% 2%,100% 98%,96% 100%,92% 98%,88% 100%,84% 98.5%,80% 100%,76% 98%,72% 100%,68% 99%,64% 100%,60% 98%,56% 100%,52% 98.5%,48% 100%,44% 98%,40% 100%,36% 99%,32% 100%,28% 98%,24% 100%,20% 98.5%,16% 100%,12% 98%,8% 100%,4% 99%,0% 100%);}
+        .brutal-letter{display:inline-block;transition:transform .15s ease,text-shadow .15s ease,color .15s ease;}
+        .brutal-letter:hover{transform:translate(-3px,-3px);text-shadow:4px 4px 0 #ff6b9d;}
+        .brutal-page ::selection{background:#f5e100;color:#000;}
+        .brutal-heading:hover{text-shadow:2px 2px 0 rgba(0,102,255,0.25);}
+        @media(prefers-reduced-motion:reduce){.brutal-page *,.brutal-page *::before,.brutal-page *::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}}
         @media(max-width:768px){.brutal-postit{display:none!important;}}
       `}</style>
 
@@ -690,11 +746,25 @@ export default function Portfolio3Brutal() {
               className="brutal-heading brutal-glitch-text"
               data-text={HERO_NAME}
               style={{ fontSize: 'clamp(4rem, 10vw, 10rem)', margin: 0, lineHeight: 0.9 }}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
             >
-              {HERO_NAME}
+              {HERO_NAME.split('').map((ch, i) =>
+                ch === ' ' ? (
+                  <span key={`sp-${i}`} style={{ display: 'inline-block', width: '0.35em' }} />
+                ) : (
+                  <motion.span
+                    key={`${ch}-${i}`}
+                    className="brutal-letter"
+                    initial={{ y: 140, opacity: 0, rotate: i % 2 === 0 ? -18 : 18 }}
+                    animate={{ y: 0, opacity: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 360, damping: 17, delay: i * 0.07 }}
+                  >
+                    {ch}
+                  </motion.span>
+                )
+              )}
             </motion.h1>
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
@@ -778,9 +848,9 @@ export default function Portfolio3Brutal() {
             <PostitNote text="← This guy ships zero-bug code 🤯" color="#f5e100" rotate="-4deg" style={{ top: 40, right: -20 }} />
             <div className="brutal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
               <div>
-                <h2 className="brutal-heading" style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)', transform: 'rotate(-1deg)' }}>
+                <SlamTitle fontSize="clamp(2.5rem, 5vw, 5rem)">
                   WHO<br />AM I?
-                </h2>
+                </SlamTitle>
                 <ScribbleUnderline width={160} color="#0066ff" />
 
                 {/* Decorative ASCII box-art frame */}
@@ -804,7 +874,7 @@ export default function Portfolio3Brutal() {
                 <p style={{ fontSize: '1.15rem', lineHeight: 1.7, fontWeight: 500 }}>
                   I build enterprise POS systems that handle real money, real transactions, and real retail operations
                   across Singapore. From payment terminals to loyalty engines, kitchen displays to offline sync — every
-                  module ships production-ready with zero financial incidents.
+                  critical path includes explicit recovery and reconciliation behavior.
                 </p>
 
                 {/* Currently status line */}
@@ -832,7 +902,7 @@ export default function Portfolio3Brutal() {
           <div className="brutal-container" style={{ padding: '80px 24px', position: 'relative' }}>
             <PostitNote text="5 years and counting! 📈" color="#ff6b9d" rotate="3deg" style={{ top: 60, left: -20 }} />
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <h2 className="brutal-heading" style={{ fontSize: 'clamp(2.5rem, 5vw, 4.5rem)' }}>EXPERIENCE</h2>
+              <SlamTitle>EXPERIENCE</SlamTitle>
               <div style={{ display: 'flex', justifyContent: 'center' }}><ScribbleUnderline width={220} color="#ff5722" /></div>
             </div>
 
@@ -923,7 +993,7 @@ export default function Portfolio3Brutal() {
         </Section>
 
         <ZigzagDivider color="#f5e100" />
-        <MarqueeBand text=" .NET 8 ★ ZERO DOWNTIME ★ 20+ PAYMENTS ★ OFFLINE SYNC ★ REAL MONEY ★ " bg="#f5e100" fg="#000" angled />
+        <MarqueeBand text=" .NET 8 ★ ZERO DOWNTIME ★ 20+ PAYMENTS ★ OFFLINE SYNC ★ REAL MONEY ★ " bg="#f5e100" fg="#000" angled reverse />
 
         <GiantDivider text="PROJECTS → PROJECTS → PROJECTS →" color="#f5e100" />
 
@@ -932,7 +1002,7 @@ export default function Portfolio3Brutal() {
           <div className="brutal-container" style={{ padding: '80px 24px', position: 'relative' }}>
             <PostitNote text="Real money. Real stakes. 💰" color="#7cff01" rotate="-2deg" style={{ top: 50, right: -20 }} />
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <h2 className="brutal-heading" style={{ fontSize: 'clamp(3rem, 6vw, 6rem)' }}>MY WORK</h2>
+              <SlamTitle fontSize="clamp(3rem, 6vw, 6rem)">MY WORK</SlamTitle>
               <div style={{ display: 'flex', justifyContent: 'center' }}><ScribbleUnderline width={180} color="#f5e100" /></div>
             </div>
 
@@ -1023,7 +1093,7 @@ export default function Portfolio3Brutal() {
           <div className="brutal-container" style={{ padding: '80px 24px' }}>
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                <h2 className="brutal-heading" style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)', margin: 0 }}>SKILLS</h2>
+                <SlamTitle fontSize="clamp(2.5rem, 5vw, 5rem)" style={{ margin: 0 }}>SKILLS</SlamTitle>
                 <Sticker bg="#ff6b9d" rotate="3deg" style={{ color: '#fff', fontSize: '1.1rem', padding: '6px 16px' }}>
                   {SKILLS_GRAPH.nodes.length} TOTAL
                 </Sticker>
@@ -1092,11 +1162,16 @@ export default function Portfolio3Brutal() {
         <Section id="testimonials">
           <div className="brutal-container" style={{ padding: '80px 24px' }}>
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <h2 className="brutal-heading" style={{ fontSize: 'clamp(2.5rem, 5vw, 4.5rem)' }}>NICE THINGS</h2>
+              <SlamTitle>REFERENCES</SlamTitle>
               <div style={{ display: 'flex', justifyContent: 'center' }}><ScribbleUnderline width={200} color="#c4b5fd" /></div>
             </div>
 
             <div className="brutal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
+              {TESTIMONIALS_DATA.length === 0 && (
+                <div className="brutal-card" style={{ padding: 28, background: '#fff', gridColumn: '1 / -1', fontWeight: 800 }}>
+                  REFERENCES AVAILABLE ON REQUEST. RECOMMENDATIONS ARE PUBLISHED ONLY WITH EXPLICIT PERMISSION.
+                </div>
+              )}
               {TESTIMONIALS_DATA.map((t, i) => (
                 <motion.div
                   key={t.name}
@@ -1176,7 +1251,7 @@ export default function Portfolio3Brutal() {
         <Section id="contact">
           <div className="brutal-container" style={{ padding: '80px 24px', textAlign: 'center', position: 'relative' }}>
             <PostitNote text="Seriously, hire this person →" color="#c4b5fd" rotate="5deg" style={{ top: 30, left: -20 }} />
-            <h2 className="brutal-heading" style={{ fontSize: 'clamp(3rem, 8vw, 8rem)' }}>LET'S TALK</h2>
+            <SlamTitle fontSize="clamp(3rem, 8vw, 8rem)">LET'S TALK</SlamTitle>
             <div style={{ display: 'flex', justifyContent: 'center' }}><ScribbleUnderline width={200} color="#ff5722" /></div>
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 28, flexWrap: 'wrap' }}>
@@ -1184,6 +1259,7 @@ export default function Portfolio3Brutal() {
                 ● Status: Available
               </Sticker>
               <SingaporeTime />
+              <CopyEmailChip />
             </div>
 
             {/* Full-width email button */}
@@ -1205,7 +1281,7 @@ export default function Portfolio3Brutal() {
 
             {/* Social link tiles */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 32, flexWrap: 'wrap' }}>
-              {SOCIAL_LINKS.map((s, i) => (
+              {SOCIAL_LINKS.filter((link) => link.url).map((s, i) => (
                 <motion.a
                   key={s.platform}
                   href={s.url || '#'}
@@ -1227,7 +1303,7 @@ export default function Portfolio3Brutal() {
         </Section>
 
         {/* ── Footer marquee ───────────────────────────────────────────── */}
-        <MarqueeBand text=" THANKS FOR SCROLLING ★ EPOS V5 ★ HIRE ME ★ SINGAPORE ★ ZERO INCIDENTS ★ " />
+        <MarqueeBand text=" THANKS FOR SCROLLING ★ EPOS V5 ★ HIRE ME ★ SINGAPORE ★ ZERO INCIDENTS ★ " reverse />
 
         {/* ── Receipt cut line ─────────────────────────────────────── */}
         <div style={{ textAlign: 'center', padding: '18px 0 0', fontFamily: 'monospace', fontWeight: 900, fontSize: '0.85rem', letterSpacing: '0.15em', opacity: 0.45 }}>
@@ -1245,6 +1321,12 @@ export default function Portfolio3Brutal() {
           }}
         >
           <div style={{ maxWidth: 500, margin: '0 auto' }}>
+            <motion.div
+              initial={{ clipPath: 'inset(0 0 100% 0)' }}
+              whileInView={{ clipPath: 'inset(0 0 0% 0)' }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 1.1, ease: 'easeInOut' }}
+            >
             <pre style={{ margin: 0, fontFamily: 'monospace', fontWeight: 700, fontSize: '0.82rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', textAlign: 'center' }}>
 {`=============================
 EPOS V5 PORTFOLIO
@@ -1257,9 +1339,10 @@ ITEMS:
 THANK YOU FOR SCROLLING!
 =============================`}
             </pre>
+            </motion.div>
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24 }}>
-              {SOCIAL_LINKS.map((s, i) => (
+              {SOCIAL_LINKS.filter((link) => link.url).map((s, i) => (
                 <a key={s.platform} href={s.url || '#'} target="_blank" rel="noopener noreferrer"
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, border: BORDER, boxShadow: SHADOW, background: accent(i), color: '#000', textDecoration: 'none' }}>
                   {socialIcon(s.platform)}
@@ -1320,12 +1403,13 @@ function AboutStats() {
   const inView = useInView(ref, { once: true })
   const y = useCountUp(5, 1000, inView)
   const m = useCountUp(30, 1200, inView)
-  const r = useCountUp(200, 1500, inView)
+  const payments = useCountUp(20, 1500, inView)
+  const devices = useCountUp(5, 900, inView)
   const stats = [
     { v: `${y}+ Years`, num: y, bg: '#ff6b9d' },
     { v: `${m}+ Modules`, num: m, bg: '#0066ff' },
-    { v: `$${r}K+`, num: r, bg: '#f5e100' },
-    { v: '0 Incidents', num: 0, bg: '#7cff01' },
+    { v: `${payments}+ Payments`, num: payments, bg: '#f5e100' },
+    { v: `${devices} Device Types`, num: devices, bg: '#7cff01' },
   ]
   return (
     <div ref={ref} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginTop: 24 }}>

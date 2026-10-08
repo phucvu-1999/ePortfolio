@@ -2,33 +2,27 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { isSoundOn } from '../lib/sound'
 import { toggleLang } from '../pages/portfolio/i18n'
+import { PORTFOLIO_PROFILE, publishedSocialLinks } from '../pages/portfolio/profile'
+import type { PortfolioSection, PortfolioSectionId } from '../pages/portfolio/sections'
 
 interface CommandPaletteProps {
-  onNavigate: (sectionIdx: number) => void
+  onNavigate: (sectionId: PortfolioSectionId) => void
   onToggleTheme: () => void
   onToggleProfessional?: () => void
+  sections: readonly PortfolioSection[]
 }
 
-const COMMANDS = [
-  { id: 'hero', label: 'Go to Hero', icon: '🏠', category: 'Navigation', action: 'nav:0' },
-  { id: 'checkout', label: 'Go to Skill Checkout', icon: '🛒', category: 'Navigation', action: 'nav:1' },
-  { id: 'about', label: 'Go to About', icon: '👤', category: 'Navigation', action: 'nav:2' },
-  { id: 'chronicle', label: 'Go to Career Chronicle', icon: '📖', category: 'Navigation', action: 'nav:3' },
-  { id: 'tender', label: 'Go to Money Layer', icon: '💳', category: 'Navigation', action: 'nav:4' },
-  { id: 'loyalty', label: 'Go to Loyalty Vault', icon: '🏅', category: 'Navigation', action: 'nav:5' },
-  { id: 'metrics', label: 'Go to Metrics', icon: '📊', category: 'Navigation', action: 'nav:6' },
-  { id: 'activity', label: 'Go to Activity Graph', icon: '🟩', category: 'Navigation', action: 'nav:7' },
-  { id: 'skills', label: 'Go to Skills', icon: '⚡', category: 'Navigation', action: 'nav:8' },
-  { id: 'works', label: 'Browse Selected Works', icon: '✦', category: 'Navigation', action: 'nav:9' },
-  { id: 'projects', label: 'Go to Project Explorer', icon: '💻', category: 'Navigation', action: 'nav:10' },
-  { id: 'lab', label: 'Go to The Lab', icon: '🧪', category: 'Navigation', action: 'nav:11' },
-  { id: 'testimonials', label: 'Go to Testimonials', icon: '⭐', category: 'Navigation', action: 'nav:12' },
-  { id: 'kanban', label: 'Go to Kanban Board', icon: '📋', category: 'Navigation', action: 'nav:13' },
-  { id: 'contact', label: 'Go to Contact', icon: '✉️', category: 'Navigation', action: 'nav:14' },
+interface PaletteCommand {
+  id: string
+  label: string
+  icon: string
+  category: string
+  action: string
+}
+
+const ACTION_COMMANDS: PaletteCommand[] = [
   { id: 'theme', label: 'Toggle Theme', icon: '🎨', category: 'Actions', action: 'theme' },
-  { id: 'top', label: 'Back to Top', icon: '⬆️', category: 'Actions', action: 'nav:0' },
-  { id: 'github', label: 'Open GitHub', icon: '🐙', category: 'Links', action: 'link:https://github.com' },
-  { id: 'linkedin', label: 'Open LinkedIn', icon: '💼', category: 'Links', action: 'link:https://linkedin.com' },
+  { id: 'top', label: 'Back to Top', icon: '⬆️', category: 'Actions', action: 'nav:hero' },
   { id: 'email', label: 'Copy Email', icon: '📧', category: 'Actions', action: 'copy-email' },
   { id: 'terminal', label: 'Open Terminal', icon: '💻', category: 'Actions', action: 'open-terminal' },
   { id: 'help', label: 'Keyboard Shortcuts & Secrets', icon: '⌨️', category: 'Actions', action: 'help' },
@@ -83,7 +77,7 @@ function ConfettiEffect() {
   )
 }
 
-export default function CommandPalette({ onNavigate, onToggleTheme, onToggleProfessional }: CommandPaletteProps) {
+export default function CommandPalette({ onNavigate, onToggleTheme, onToggleProfessional, sections }: CommandPaletteProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -126,16 +120,34 @@ export default function CommandPalette({ onNavigate, onToggleTheme, onToggleProf
     }
   }, [open])
 
+  const commands = useMemo<PaletteCommand[]>(() => [
+    ...sections.map((section) => ({
+      id: `nav-${section.id}`,
+      label: `Go to ${section.label}`,
+      icon: '→',
+      category: 'Navigation',
+      action: `nav:${section.id}`,
+    })),
+    ...ACTION_COMMANDS,
+    ...publishedSocialLinks.map((link) => ({
+      id: `link-${link.platform.toLowerCase()}`,
+      label: `Open ${link.platform}`,
+      icon: '↗',
+      category: 'Links',
+      action: `link:${link.url}`,
+    })),
+  ], [sections])
+
   // Filter commands
   const filtered = useMemo(() => {
-    if (!query) return COMMANDS
+    if (!query) return commands
     const q = query.toLowerCase()
-    return COMMANDS.filter(c => c.label.toLowerCase().includes(q) || c.category.toLowerCase().includes(q))
-  }, [query])
+    return commands.filter(c => c.label.toLowerCase().includes(q) || c.category.toLowerCase().includes(q))
+  }, [commands, query])
 
   // Group by category
   const grouped = useMemo(() => {
-    const map = new Map<string, typeof COMMANDS>()
+    const map = new Map<string, PaletteCommand[]>()
     for (const cmd of filtered) {
       if (!map.has(cmd.category)) map.set(cmd.category, [])
       map.get(cmd.category)!.push(cmd)
@@ -150,13 +162,14 @@ export default function CommandPalette({ onNavigate, onToggleTheme, onToggleProf
   const execute = useCallback((action: string) => {
     setOpen(false)
     if (action.startsWith('nav:')) {
-      onNavigate(parseInt(action.split(':')[1]))
+      const sectionId = action.slice(4) as PortfolioSectionId
+      if (sections.some((section) => section.id === sectionId)) onNavigate(sectionId)
     } else if (action === 'theme') {
       onToggleTheme()
     } else if (action.startsWith('link:')) {
       window.open(action.slice(5), '_blank')
     } else if (action === 'copy-email') {
-      navigator.clipboard.writeText('hello@portfolio.dev')
+      navigator.clipboard.writeText(PORTFOLIO_PROFILE.email)
       setCopiedToast(true)
       setTimeout(() => setCopiedToast(false), 2000)
     } else if (action === 'confetti') {
@@ -184,7 +197,7 @@ export default function CommandPalette({ onNavigate, onToggleTheme, onToggleProf
       setSoundToast(newLang === 'vi' ? '🌐 Tiếng Việt' : '🌐 English')
       setTimeout(() => setSoundToast(null), 2000)
     }
-  }, [onNavigate, onToggleTheme, onToggleProfessional])
+  }, [onNavigate, onToggleTheme, onToggleProfessional, sections])
 
   // Keyboard navigation inside palette
   const handleInputKeyDown = (e: React.KeyboardEvent) => {
